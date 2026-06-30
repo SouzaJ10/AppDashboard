@@ -60,38 +60,6 @@ function AuthPage() {
     }
   };
 
-  const handleSignUp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const parsedEmail = emailSchema.safeParse(email);
-    if (!parsedEmail.success) return toast.error(parsedEmail.error.issues[0].message);
-    const parsedPwd = passwordSchema.safeParse(password);
-    if (!parsedPwd.success) return toast.error(parsedPwd.error.issues[0].message);
-    if (!fullName.trim()) return toast.error("Informe seu nome completo");
-
-    setLoading(true);
-    const { data, error } = await supabase.auth.signUp({
-      email: parsedEmail.data,
-      password: parsedPwd.data,
-      options: {
-        data: { full_name: fullName.trim() },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
-      },
-    });
-    setLoading(false);
-    if (error) return toast.error("Falha no cadastro", { description: error.message });
-
-    // Quando confirmação de e-mail está ativa, session vem null.
-    if (!data.session) {
-      setPendingConfirm(parsedEmail.data);
-      toast.success("Cadastro recebido!", {
-        description: `Enviamos um link de confirmação para ${parsedEmail.data}. Confirme o e-mail antes de entrar.`,
-      });
-    } else {
-      toast.success("Conta criada!");
-    }
-  };
-
-
   const handleResend = async (target: string) => {
     const parsed = emailSchema.safeParse(target);
     if (!parsed.success) return toast.error(parsed.error.issues[0].message);
@@ -133,7 +101,7 @@ function AuthPage() {
           </div>
 
           <h1 className="text-2xl font-semibold tracking-tight">Acessar painel</h1>
-          <p className="mt-1 text-sm text-muted-foreground">Entre ou crie sua conta para continuar.</p>
+          <p className="mt-1 text-sm text-muted-foreground"> Entre com sua conta para continuar..</p>
 
           {pendingConfirm && (
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -151,32 +119,7 @@ function AuthPage() {
           <Tabs defaultValue="signin" className="mt-6">
             <TabsList className="grid w-full grid-cols-2">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
-              <TabsTrigger value="signup">Cadastrar</TabsTrigger>
             </TabsList>
-
-            <TabsContent value="signin">
-              <form onSubmit={handleSignIn} className="space-y-3">
-                <div>
-                  <Label htmlFor="email-in">E-mail</Label>
-                  <Input id="email-in" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="pwd-in">Senha</Label>
-                  <Input id="pwd-in" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Entrar
-                </Button>
-                <div className="flex justify-between text-xs">
-                  <ForgotPasswordDialog defaultEmail={email} />
-                  {email && (
-                    <button type="button" className="text-muted-foreground hover:underline" onClick={() => handleResend(email)}>
-                      Reenviar confirmação
-                    </button>
-                  )}
-                </div>
-              </form>
-            </TabsContent>
 
             <TabsContent value="signup">
               <form onSubmit={handleSignUp} className="space-y-3">

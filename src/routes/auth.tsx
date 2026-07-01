@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2 } from "lucide-react";
+import { Loader2, Package2 } from "lucide-react";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 const emailSchema = z.string().trim().toLowerCase().email("E-mail inválido").max(255);
@@ -71,34 +71,48 @@ function AuthPage() {
 
   return (
     <div className="grid min-h-screen lg:grid-cols-2">
-      <div className="hidden bg-primary p-12 text-primary-foreground lg:flex lg:flex-col lg:justify-between">
-        <div className="flex items-center gap-3">
-          <div className="grid h-10 w-10 place-items-center rounded-lg bg-white/15 font-bold">SP</div>
+      <div className="hidden relative overflow-hidden bg-gradient-to-br from-blue-800 via-blue-700 to-blue-500 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div className="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+        <div className="absolute -bottom-32 -left-20 h-80 w-80 rounded-full bg-blue-300/10 blur-3xl" />
+        <div className="relative z-10 flex items-center gap-3">
+          <div className="grid h-11 w-11 place-items-center rounded-xl bg-white/15 backdrop-blur-sm">
+            <Package2 className="h-6 w-6" />
+          </div>
           <div>
-            <div className="font-semibold">Gestão de Vendas</div>
-            <div className="text-xs opacity-80">Sistema de Gestão Comercial</div>
+            <div className="text-lg font-semibold tracking-wide">
+              Gestão de Vendas
+            </div>
+            <div className="text-sm text-white/80">Sistema Comercial Inteligente</div>
           </div>
         </div>
-        <div>
-          <h2 className="text-3xl font-bold leading-tight">Toda sua operação em um só lugar.</h2>
-          <p className="mt-3 max-w-md text-sm opacity-90">
-            Vendas, estoque, financeiro e indicadores em tempo real. Pronto para usar no computador e no celular.
+        <div className="relative z-10 flex flex-col justify-center flex-1 max-w-lg">
+          <h2 className="text-5xl font-extrabold leading-tight">
+            Controle sua empresa
+            <br />
+            com rapidez e segurança.
+          </h2>
+
+          <p className="mt-6 text-lg leading-8 text-white/90">
+            Gerencie vendas, estoque e financeiro em um único sistema.
+            Acompanhe indicadores em tempo real e tome decisões com mais confiança.
           </p>
         </div>
         <div className="text-xs opacity-70">© {new Date().getFullYear()} Gestão de Vendas</div>
       </div>
 
       <div className="flex min-h-screen items-center justify-center p-6 -mt-12">
-        <div className="w-full max-w-sm">
+        <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
           <div className="mb-6 lg:hidden">
-            <div className="flex items-center gap-2">
-              <div className="grid h-9 w-9 place-items-center rounded-lg bg-primary text-primary-foreground font-bold">SP</div>
+            <div className="relative z-10 flex items-center gap-3">
+              <div className="grid h-10 w-10 place-items-center rounded-xl bg-primary text-primary-foreground">
+                <Package2 className="h-5 w-5" />
+              </div>
               <div className="font-semibold">Gestão de Vendas</div>
             </div>
           </div>
 
-          <h1 className="text-2xl font-semibold tracking-tight">Acessar painel</h1>
-          <p className="mt-1 text-sm text-muted-foreground"> Entre com sua conta para continuar..</p>
+          <h1 className="text-3xl font-bold tracking-tight text-center">Acessar painel</h1>
+          <p className="mt-2 mb-6 text-center text-sm text-muted-foreground"> Entre com sua conta para continuar..</p>
 
           {pendingConfirm && (
             <div className="mt-4 rounded-md border border-amber-200 bg-amber-50 p-3 text-xs text-amber-900">
@@ -116,55 +130,55 @@ function AuthPage() {
           <Tabs defaultValue="signin" className="mt-6">
             <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
-
-              <TabsContent value="signin">
-                <form onSubmit={handleSignIn} className="space-y-3">
-                  <div>
-                    <Label htmlFor="email-in">E-mail</Label>
-                    <Input
-                      id="email-in"
-                      type="email"
-                      required
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                    />
-                  </div>
-
-                  <div>
-                    <Label htmlFor="pwd-in">Senha</Label>
-                    <Input
-                      id="pwd-in"
-                      type="password"
-                      required
-                      value={password}
-                      onChange={(e) => setPassword(e.target.value)}
-                    />
-                  </div>
-
-                  <Button type="submit" className="w-full" disabled={loading}>
-                    {loading && (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    )}
-                    Entrar
-                  </Button>
-
-                  <div className="flex justify-between text-sm">
-                    <ForgotPasswordDialog defaultEmail={email} />
-
-                    {pendingConfirm && (
-                      <button
-                        type="button"
-                        className="text-primary hover:underline"
-                        onClick={() => handleResend(pendingConfirm)}
-                      >
-                        Reenviar confirmação
-                      </button>
-                    )}
-                  </div>
-                </form>
-              </TabsContent>
-
             </TabsList>
+
+            <TabsContent value="signin">
+              <form onSubmit={handleSignIn} className="space-y-3">
+                <div>
+                  <Label htmlFor="email-in">E-mail</Label>
+                  <Input
+                    id="email-in"
+                    type="email"
+                    required
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+
+                <div>
+                  <Label htmlFor="pwd-in">Senha</Label>
+                  <Input
+                    id="pwd-in"
+                    type="password"
+                    required
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                  />
+                </div>
+
+                <Button type="submit" className="w-full" disabled={loading}>
+                  {loading && (
+                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  )}
+                  Entrar
+                </Button>
+
+                <div className="flex justify-between text-sm">
+                  <ForgotPasswordDialog defaultEmail={email} />
+
+                  {pendingConfirm && (
+                    <button
+                      type="button"
+                      className="text-primary hover:underline"
+                      onClick={() => handleResend(pendingConfirm)}
+                    >
+                      Reenviar confirmação
+                    </button>
+                  )}
+                </div>
+              </form>
+            </TabsContent>
+
           </Tabs>
         </div>
       </div>

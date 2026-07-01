@@ -12,8 +12,6 @@ import { Loader2 } from "lucide-react";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
 const emailSchema = z.string().trim().toLowerCase().email("E-mail inválido").max(255);
-const passwordSchema = z.string().min(6, "A senha deve ter ao menos 6 caracteres").max(72);
-
 export const Route = createFileRoute("/auth")({
   ssr: false,
   validateSearch: searchSchema,
@@ -29,7 +27,6 @@ function AuthPage() {
   const { redirect: redirectTo } = useSearch({ from: "/auth" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [fullName, setFullName] = useState("");
   const [loading, setLoading] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<string | null>(null);
 
@@ -91,7 +88,7 @@ function AuthPage() {
         <div className="text-xs opacity-70">© {new Date().getFullYear()} Gestão de Vendas</div>
       </div>
 
-      <div className="flex items-center justify-center p-6">
+      <div className="flex min-h-screen items-center justify-center p-6 -mt-12">
         <div className="w-full max-w-sm">
           <div className="mb-6 lg:hidden">
             <div className="flex items-center gap-2">
@@ -117,32 +114,57 @@ function AuthPage() {
           )}
 
           <Tabs defaultValue="signin" className="mt-6">
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-1">
               <TabsTrigger value="signin">Entrar</TabsTrigger>
-            </TabsList>
 
-            <TabsContent value="signup">
-              <form onSubmit={handleSignUp} className="space-y-3">
-                <div>
-                  <Label htmlFor="name-up">Nome completo</Label>
-                  <Input id="name-up" required value={fullName} onChange={(e) => setFullName(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="email-up">E-mail</Label>
-                  <Input id="email-up" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} />
-                </div>
-                <div>
-                  <Label htmlFor="pwd-up">Senha</Label>
-                  <Input id="pwd-up" type="password" required minLength={6} value={password} onChange={(e) => setPassword(e.target.value)} />
-                </div>
-                <Button type="submit" className="w-full" disabled={loading}>
-                  {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}Criar conta
-                </Button>
-                <p className="text-[11px] text-muted-foreground">
-                  Você receberá um e-mail para confirmar sua conta antes do primeiro acesso. O primeiro usuário cadastrado se torna administrador.
-                </p>
-              </form>
-            </TabsContent>
+              <TabsContent value="signin">
+                <form onSubmit={handleSignIn} className="space-y-3">
+                  <div>
+                    <Label htmlFor="email-in">E-mail</Label>
+                    <Input
+                      id="email-in"
+                      type="email"
+                      required
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="pwd-in">Senha</Label>
+                    <Input
+                      id="pwd-in"
+                      type="password"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+
+                  <Button type="submit" className="w-full" disabled={loading}>
+                    {loading && (
+                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    )}
+                    Entrar
+                  </Button>
+
+                  <div className="flex justify-between text-sm">
+                    <ForgotPasswordDialog defaultEmail={email} />
+
+                    {pendingConfirm && (
+                      <button
+                        type="button"
+                        className="text-primary hover:underline"
+                        onClick={() => handleResend(pendingConfirm)}
+                      >
+                        Reenviar confirmação
+                      </button>
+                    )}
+                  </div>
+                </form>
+              </TabsContent>
+
+            </TabsList>
           </Tabs>
         </div>
       </div>

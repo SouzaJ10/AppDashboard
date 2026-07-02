@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogTrigger, DialogDescription } from "@/components/ui/dialog";
 import { toast } from "sonner";
-import { Loader2, Package2 } from "lucide-react";
+import { Loader2, Package2, Eye, EyeOff } from "lucide-react";
 import { motion, useTime, useTransform } from "framer-motion";
 
 const searchSchema = z.object({ redirect: z.string().optional() });
@@ -28,6 +28,7 @@ function AuthPage() {
   const { redirect: redirectTo } = useSearch({ from: "/auth" });
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [pendingConfirm, setPendingConfirm] = useState<string | null>(null);
 
@@ -194,21 +195,33 @@ function AuthPage() {
                 </div>
 
                 <div>
-                  <Label
-                    htmlFor="pwd-in"
-                    className="mb-2 block font-medium"
-                  >
-                    Senha
-                  </Label>
-                  <Input
-                    id="pwd-in"
-                    type="password"
-                    placeholder="Digite sua senha"
-                    required
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="h-12 rounded-xl border-gray-300 bg-gray-50 transition-all duration-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
-                  />
+                  <Label htmlFor="pwd-in">Senha</Label>
+
+                  <div className="relative">
+
+                    <Input
+                      id="pwd-in"
+                      type={showPassword ? "text" : "password"}
+                      placeholder="Digite sua senha"
+                      required
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      className="pr-12 h-12 rounded-xl border-gray-300 bg-gray-50 transition-all duration-300 focus:border-blue-500 focus:bg-white focus:ring-2 focus:ring-blue-200"
+                    />
+
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-gray-700"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5" />
+                      ) : (
+                        <Eye className="h-5 w-5" />
+                      )}
+                    </button>
+
+                  </div>
                 </div>
 
                 <Button

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listarVendas } from "@/service/vendas.service"; 
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -11,6 +11,7 @@ import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContaine
 import { ShoppingCart, DollarSign, TrendingUp, Trophy } from "lucide-react";
 import { NovaVendaDialog } from "@/components/vendas/NovaVendaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
+import { queryKeys } from "@/constants/queryKeys";
 
 export const Route = createFileRoute("/_authenticated/vendas")({ component: VendasPage });
 
@@ -18,12 +19,12 @@ function VendasPage() {
   useRealtime(["vendas", "produtos", "movimentacoes"]);
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
-  const [to, setTo] = useState("");
+  const [to, setTo] = useState(""); 
 
-  const { data: vendas = [], isLoading } = useQuery({
-    queryKey: ["vendas-all"],
-    queryFn: async () => (await supabase.from("vendas").select("*").order("data", { ascending: false })).data ?? [],
-  });
+const { data: vendas = [], isLoading } = useQuery({
+  queryKey: queryKeys.vendas.all,
+  queryFn: listarVendas,
+});
 
   const filtered = useMemo(() => {
     return vendas.filter((v) => {

@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
+import { listarProdutosParaVenda } from "@/service/vendas.service";
 
 export function NovaVendaDialog() {
   const qc = useQueryClient();
@@ -30,9 +31,7 @@ export function NovaVendaDialog() {
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos-select"],
-    queryFn: async () =>
-      ((await supabase.from("produtos").select("*").order("descricao")).data ?? []) as unknown as ProdutoFull[],
-    enabled: open,
+    queryFn: listarProdutosParaVenda
   });
 
   // Auto-preenche o valor unitário com o preço cadastrado do produto.

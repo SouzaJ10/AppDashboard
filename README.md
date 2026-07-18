@@ -5,8 +5,8 @@ Stack: **React 19 + TanStack Start + Tailwind v4 + Supabase + Recharts**.
 
 ## ✨ Funcionalidades
 
-- 🔐 Autenticação Email/Senha + Google (primeiro usuário vira admin)
-- 📊 Dashboard executiva com 8 KPIs e gráficos (Recharts)
+- 🔐 Autenticação Email/Senha (primeiro usuário vira admin)
+- 📊 Dashboard executiva com KPIs e gráficos (Recharts)
 - 🛒 Histórico de vendas + cadastro manual (➕ Nova Venda)
 - 📦 Estoque com alertas (OK / Crítico / Zerado)
 - 💰 Financeiro (fluxo de caixa diário / semanal / mensal / anual)

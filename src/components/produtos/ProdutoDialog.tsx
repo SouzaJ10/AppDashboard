@@ -3,18 +3,15 @@ import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,
-} from "@/components/ui/dialog";
+import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil, Loader2 } from "lucide-react";
+import { salvarProduto } from "@/service/produto.service";
 
 type Props = {
   produto?: ProdutoFull;
@@ -71,10 +68,16 @@ export function ProdutoDialog({ produto, trigger }: Props) {
 
   const onSave = async () => {
     const codigo = Number(form.codigo);
-    if (!codigo) return toast.error("Código do produto é obrigatório");
-    if (!form.nome.trim()) return toast.error("Nome do produto é obrigatório");
 
-    const fullPayload: Record<string, unknown> = {
+    if (!codigo) {
+      return toast.error("Código do produto é obrigatório");
+    }
+
+    if (!form.nome.trim()) {
+      return toast.error("Nome do produto é obrigatório");
+    }
+
+    const payload = {
       codigo,
       nome: form.nome.trim(),
       descricao: (form.descricao || form.nome).trim(),
@@ -91,66 +94,29 @@ export function ProdutoDialog({ produto, trigger }: Props) {
     };
 
     setSaving(true);
+
     try {
-      // 1. Descobre quais colunas realmente existem no banco. Isso evita o
-      //    erro "Could not find the 'X' column of 'produtos' in the schema cache"
-      //    quando a migration ainda não foi aplicada.
-      const { data: sample } = await supabase
-        .from("produtos")
-        .select("*")
-        .limit(1);
-      const existingCols = new Set<string>(
-        sample && sample.length > 0
-          ? Object.keys(sample[0] as Record<string, unknown>)
-          : ["id", "codigo", "descricao", "estoque_atual", "estoque_minimo", "created_at", "updated_at"],
+      await salvarProduto(
+        payload,
+        isEdit ? produto?.id : undefined
       );
 
-      // 2. Mantém apenas as colunas suportadas pelo schema atual.
-      const payload: Record<string, unknown> = {};
-      let droppedNew = false;
-      for (const [k, v] of Object.entries(fullPayload)) {
-        if (existingCols.has(k)) payload[k] = v;
-        else droppedNew = true;
-      }
-      // Fallback obrigatório: descricao precisa estar sempre presente (NOT NULL).
-      if (!("descricao" in payload)) payload.descricao = fullPayload.descricao;
+      toast.success(
+        isEdit
+          ? "Produto atualizado"
+          : "Produto cadastrado"
+      );
 
-      if (droppedNew) {
-        toast.warning(
-          "Banco em schema antigo — salvando apenas os campos suportados.",
-          { description: "Aplique supabase/migrations/20260627_produtos_full_fields.sql para habilitar nome, categoria, marca, custo, preço, fornecedor, observações e ativo." },
-        );
-      }
+      await qc.invalidateQueries({
+        queryKey: ["produtos"],
+      });
 
-      const isRLSError = (err: unknown) => {
-        const m = (err instanceof Error ? err.message : String(err)).toLowerCase();
-        return m.includes("row-level security") || m.includes("violates row");
-      };
-
-      if (isEdit && produto) {
-        const { error } = await supabase.from("produtos").update(payload as never).eq("id", produto.id);
-        if (error) {
-          if (isRLSError(error)) {
-            throw new Error("Sem permissão (RLS): seu usuário precisa ter role 'admin' em user_roles para editar produtos.");
-          }
-          throw error;
-        }
-        toast.success("Produto atualizado");
-      } else {
-        const { error } = await supabase.from("produtos").insert(payload as never);
-        if (error) {
-          if (isRLSError(error)) {
-            throw new Error("Sem permissão (RLS): seu usuário precisa ter role 'admin' em user_roles para cadastrar produtos.");
-          }
-          throw error;
-        }
-        toast.success("Produto cadastrado");
-      }
-      qc.invalidateQueries();
       setOpen(false);
     } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      toast.error("Erro ao salvar produto", { description: msg });
+      toast.error("Erro ao salvar produto", {
+        description:
+          e instanceof Error ? e.message : String(e),
+      });
     } finally {
       setSaving(false);
     }

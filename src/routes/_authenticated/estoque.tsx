@@ -8,20 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
-import {
-  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
-  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
-  AlertDialogTrigger,
-} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 import { Package, AlertTriangle, XCircle, Boxes, DollarSign, Trash2, Eye } from "lucide-react";
 import { num, brl } from "@/lib/format";
 import { ProdutoDialog } from "@/components/produtos/ProdutoDialog";
 import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/useRealtime";
+import { listarProdutos, excluirProduto, } from "@/service/produto.service";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -35,8 +30,7 @@ function EstoquePage() {
 
   const { data: produtos = [], isLoading } = useQuery({
     queryKey: ["produtos-all"],
-    queryFn: async () =>
-      ((await supabase.from("produtos").select("*").order("codigo")).data ?? []) as unknown as ProdutoFull[],
+    queryFn: listarProdutos,
   });
   const { data: vendas = [] } = useQuery({
     queryKey: ["vendas-giro"],
@@ -99,13 +93,19 @@ function EstoquePage() {
   };
 
   const onDelete = async (p: ProdutoFull) => {
-    const { error } = await supabase.from("produtos").delete().eq("id", p.id);
-    if (error) {
-      toast.error("Erro ao excluir", { description: error.message });
-      return;
+    try {
+      await excluirProduto(p.id);
+
+      toast.success("Produto excluído");
+
+      await qc.invalidateQueries({
+        queryKey: ["produtos"],
+      });
+    } catch (e) {
+      toast.error(
+        e instanceof Error ? e.message : "Erro ao excluir produto"
+      );
     }
-    toast.success("Produto excluído");
-    qc.invalidateQueries();
   };
 
   return (
@@ -178,7 +178,7 @@ function EstoquePage() {
                   const st = statusOf(e, m);
                   const toneCls = st.tone === "destructive" ? "bg-destructive/15 text-destructive border-destructive/30"
                     : st.tone === "warning" ? "bg-warning/15 text-warning-foreground border-warning/30"
-                    : "bg-success/15 text-success border-success/30";
+                      : "bg-success/15 text-success border-success/30";
                   const rowCls = st.tone === "destructive"
                     ? "bg-destructive/5"
                     : st.tone === "warning" ? "bg-warning/5" : "";

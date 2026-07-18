@@ -1,20 +1,14 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
-import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
+import { listarProdutosParaVenda, registrarVenda, } from "@/service/vendas.service"; import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
-import { listarProdutosParaVenda } from "@/service/vendas.service";
 
 export function NovaVendaDialog() {
   const qc = useQueryClient();
@@ -31,7 +25,8 @@ export function NovaVendaDialog() {
 
   const { data: produtos = [] } = useQuery({
     queryKey: ["produtos-select"],
-    queryFn: listarProdutosParaVenda
+    queryFn: listarProdutosParaVenda,
+    enabled: open,
   });
 
   // Auto-preenche o valor unitário com o preço cadastrado do produto.
@@ -74,35 +69,15 @@ export function NovaVendaDialog() {
 
     setSaving(true);
     try {
-      // 1. Insere venda
-      const { error: e1 } = await supabase.from("vendas").insert({
-        produto_id: produto.id,
-        codigo: produto.codigo,
-        descricao,
+      await registrarVenda({
+        produtoId: produto.id,
         quantidade: q,
-        preco_venda,
-        despesas,
-        custo,
-        lucro,
-        margem,
-        data: new Date().toISOString().slice(0, 10),
+        valorUnitario: vu,
+        desconto: desc,
+        frete: fr,
+        cliente,
+        observacoes: obs,
       });
-      if (e1) throw e1;
-
-      // 2. Baixa estoque
-      const novoEstoque = Math.max(0, Number(produto.estoque_atual ?? 0) - q);
-      const { error: e2 } = await supabase
-        .from("produtos").update({ estoque_atual: novoEstoque }).eq("id", produto.id);
-      if (e2) throw e2;
-
-      // 3. Movimentação financeira (entrada de caixa)
-      const { error: e3 } = await supabase.from("movimentacoes").insert({
-        data: new Date().toISOString().slice(0, 10),
-        entrada: preco_venda,
-        saida: 0,
-        descricao: `Venda: ${produto.descricao}${cliente ? ` — ${cliente}` : ""}`,
-      });
-      if (e3) throw e3;
 
       toast.success("Venda registrada com sucesso!");
       qc.invalidateQueries();

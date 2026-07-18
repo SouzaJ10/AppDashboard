@@ -1,7 +1,7 @@
 # Gestão de Vendas — Sistema de Gestão Comercial
 
 Aplicativo PWA de BI e operação comercial.
-Stack: **React 19 + TanStack Start + Tailwind v4 + Supabase (Lovable Cloud) + Recharts**.
+Stack: **React 19 + TanStack Start + Tailwind v4 + Supabase + Recharts**.
 
 ## ✨ Funcionalidades
 

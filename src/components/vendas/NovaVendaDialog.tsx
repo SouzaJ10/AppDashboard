@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
+import { queryKeys } from "@/constants/queryKeys";
 
 export function NovaVendaDialog() {
   const qc = useQueryClient();
@@ -80,13 +81,21 @@ export function NovaVendaDialog() {
       });
 
       toast.success("Venda registrada com sucesso!");
-      qc.invalidateQueries();
+      await Promise.all([
+        qc.invalidateQueries({ queryKey: queryKeys.vendas.all }),
+        qc.invalidateQueries({ queryKey: ["dashboard"] }),
+        qc.invalidateQueries({ queryKey: ["produtos"] }),
+        qc.invalidateQueries({ queryKey: ["movimentacoes"] }),
+      ]);
       reset();
       setOpen(false);
-    } catch (e) {
-      toast.error("Erro ao salvar venda", { description: e instanceof Error ? e.message : String(e) });
-    } finally {
-      setSaving(false);
+    } catch (e: any) {
+      console.error("Erro ao registrar venda:", e);
+
+      toast.error("Erro ao salvar venda", {
+        description: e?.message ?? e?.error_description ??
+          "Ocorreu um erro inesperado.",
+      });
     }
   };
 

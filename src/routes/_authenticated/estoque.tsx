@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listarProdutos, excluirProduto, } from "@/service/produto.service";
+import { listarGiroProdutos } from "@/service/vendas.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -16,7 +17,7 @@ import { ProdutoDialog } from "@/components/produtos/ProdutoDialog";
 import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/useRealtime";
-import { listarProdutos, excluirProduto, } from "@/service/produto.service";
+import { queryKeys } from "@/constants/queryKeys";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -29,12 +30,12 @@ function EstoquePage() {
   const [detalhes, setDetalhes] = useState<ProdutoFull | null>(null);
 
   const { data: produtos = [], isLoading } = useQuery({
-    queryKey: ["produtos-all"],
+    queryKey: queryKeys.produtos.all,
     queryFn: listarProdutos,
   });
   const { data: vendas = [] } = useQuery({
-    queryKey: ["vendas-giro"],
-    queryFn: async () => (await supabase.from("vendas").select("descricao,quantidade")).data ?? [],
+    queryKey: queryKeys.produtos.giro,
+    queryFn: listarGiroProdutos,
   });
 
   const giroMap = useMemo(() => {
@@ -99,7 +100,7 @@ function EstoquePage() {
       toast.success("Produto excluído");
 
       await qc.invalidateQueries({
-        queryKey: ["produtos"],
+        queryKey: queryKeys.produtos.all,
       });
     } catch (e) {
       toast.error(

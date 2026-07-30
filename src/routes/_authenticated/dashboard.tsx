@@ -1,22 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import {
-  TrendingUp, DollarSign, ShoppingCart, Package, Percent, Wallet, BarChart3, Target,
-  AlertTriangle, XCircle, Boxes,
-} from "lucide-react";
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
-} from "recharts";
+import { TrendingUp, DollarSign, ShoppingCart, Package, Percent, Wallet, BarChart3, Target, AlertTriangle, XCircle, Boxes, } from "lucide-react";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { brl, num, pct } from "@/lib/format";
-import { supabase } from "@/integrations/supabase/client";
+import { listarVendasDashboard, listarComprasDashboard, listarMovimentacoesDashboard,listarProdutosDashboard, listarDespesasDashboard,} from "@/service/dashboard.service";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/useRealtime";
-import type { Despesa } from "@/integrations/supabase/despesas-extra";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
   component: DashboardPage,
@@ -30,32 +23,24 @@ const monthLabel = (d: string | Date) => {
 function DashboardPage() {
   useRealtime(["vendas", "compras", "movimentacoes", "produtos", "despesas"]);
   const vendasQ = useQuery({
-    queryKey: ["vendas"],
-    queryFn: async () => (await supabase.from("vendas").select("*").order("data", { ascending: true })).data ?? [],
+        queryKey: ["vendas"],
+        queryFn: listarVendasDashboard,
   });
   const comprasQ = useQuery({
-    queryKey: ["compras"],
-    queryFn: async () => (await supabase.from("compras").select("*")).data ?? [],
+      queryKey: ["compras"],
+      queryFn: listarComprasDashboard,
   });
   const movQ = useQuery({
     queryKey: ["movimentacoes"],
-    queryFn: async () => (await supabase.from("movimentacoes").select("*")).data ?? [],
+    queryFn: listarMovimentacoesDashboard,
   });
   const produtosQ = useQuery({
     queryKey: ["produtos"],
-    queryFn: async () => (await supabase.from("produtos").select("*")).data ?? [],
+    queryFn: listarProdutosDashboard,
   });
   const despesasQ = useQuery({
     queryKey: ["despesas"],
-    queryFn: async () => {
-      const { data, error } = await supabase.from("despesas" as never).select("*");
-      if (error) {
-        const m = error.message.toLowerCase();
-        if (m.includes("does not exist") || m.includes("schema cache")) return [];
-        throw error;
-      }
-      return (data ?? []) as unknown as Despesa[];
-    },
+    queryFn: listarDespesasDashboard,
   });
 
   const vendas = vendasQ.data ?? [];

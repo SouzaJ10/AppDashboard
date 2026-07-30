@@ -25,7 +25,7 @@ export function NovaVendaDialog() {
   const [obs, setObs] = useState("");
 
   const { data: produtos = [] } = useQuery({
-    queryKey: ["produtos-select"],
+    queryKey: queryKeys.produtos.giro,
     queryFn: listarProdutosParaVenda,
     enabled: open,
   });
@@ -83,9 +83,10 @@ export function NovaVendaDialog() {
       toast.success("Venda registrada com sucesso!");
       await Promise.all([
         qc.invalidateQueries({ queryKey: queryKeys.vendas.all }),
-        qc.invalidateQueries({ queryKey: ["dashboard"] }),
-        qc.invalidateQueries({ queryKey: ["produtos"] }),
-        qc.invalidateQueries({ queryKey: ["movimentacoes"] }),
+        qc.invalidateQueries({ queryKey: queryKeys.produtos.giro }),
+        qc.invalidateQueries({ queryKey: queryKeys.produtos.all }),
+        qc.invalidateQueries({ queryKey: queryKeys.dashboard.all }),
+        qc.invalidateQueries({ queryKey: queryKeys.movimentacoes.all }),
       ]);
       reset();
       setOpen(false);

@@ -3,16 +3,24 @@ export const queryKeys = {
     all: ["dashboard"] as const,
   },
 
-  produtos: {
-    all: ["produtos"] as const,
-    select: ["produtos-select"] as const,
+  vendas: {
+    all: ["vendas"] as const,
   },
 
-  vendas: {
-    all: ["vendas-all"] as const,
+  produtos: {
+    all: ["produtos"] as const,
+    giro: ["produtos-giro"] as const,
   },
 
   movimentacoes: {
     all: ["movimentacoes"] as const,
   },
-} as const;
+
+  compras: {
+    all: ["compras"] as const,
+  },
+
+  despesas: {
+    all: ["despesas"] as const,
+  },
+};

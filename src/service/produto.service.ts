@@ -65,3 +65,15 @@ export async function salvarProduto(
         .insert(payload as never)
     if (error) throw error;
 }
+
+export async function listarGiroProdutos() {
+  const { data, error } = await supabase
+    .from("vendas")
+    .select("descricao, quantidade");
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}

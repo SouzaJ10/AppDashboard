@@ -74,3 +74,15 @@ export async function registrarVenda(input: RegistrarVendaInput) {
 
   return data as string;
 }
+
+export async function listarGiroProdutos() {
+  const { data, error } = await supabase
+    .from("vendas")
+    .select("descricao, quantidade");
+
+  if (error) {
+    throw error;
+  }
+
+  return data ?? [];
+}

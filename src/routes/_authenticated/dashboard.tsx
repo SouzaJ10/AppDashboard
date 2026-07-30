@@ -1,12 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useQuery } from "@tanstack/react-query";
+import { useDashboard } from "@/hooks/useDashboard";
 import { useMemo } from "react";
 import { TrendingUp, DollarSign, ShoppingCart, Package, Percent, Wallet, BarChart3, Target, AlertTriangle, XCircle, Boxes, } from "lucide-react";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, } from "recharts";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { brl, num, pct } from "@/lib/format";
-import { listarVendasDashboard, listarComprasDashboard, listarMovimentacoesDashboard,listarProdutosDashboard, listarDespesasDashboard,} from "@/service/dashboard.service";
+import { listarVendasDashboard, listarComprasDashboard, listarMovimentacoesDashboard, listarProdutosDashboard, listarDespesasDashboard, } from "@/service/dashboard.service";
 import { Link } from "@tanstack/react-router";
 import { Button } from "@/components/ui/button";
 import { useRealtime } from "@/hooks/useRealtime";
@@ -22,32 +22,10 @@ const monthLabel = (d: string | Date) => {
 
 function DashboardPage() {
   useRealtime(["vendas", "compras", "movimentacoes", "produtos", "despesas"]);
-  const vendasQ = useQuery({
-        queryKey: ["vendas"],
-        queryFn: listarVendasDashboard,
-  });
-  const comprasQ = useQuery({
-      queryKey: ["compras"],
-      queryFn: listarComprasDashboard,
-  });
-  const movQ = useQuery({
-    queryKey: ["movimentacoes"],
-    queryFn: listarMovimentacoesDashboard,
-  });
-  const produtosQ = useQuery({
-    queryKey: ["produtos"],
-    queryFn: listarProdutosDashboard,
-  });
-  const despesasQ = useQuery({
-    queryKey: ["despesas"],
-    queryFn: listarDespesasDashboard,
-  });
 
-  const vendas = vendasQ.data ?? [];
-  const compras = comprasQ.data ?? [];
-  const mov = movQ.data ?? [];
-  const produtos = produtosQ.data ?? [];
-  const despesas = despesasQ.data ?? [];
+  const {
+    vendas, compras, movimentacoes: mov, produtos, despesas, loading,
+  } = useDashboard();
 
   const k = useMemo(() => {
     const faturamento = vendas.reduce((s, v) => s + Number(v.preco_venda ?? 0), 0);
@@ -111,7 +89,6 @@ function DashboardPage() {
     return Array.from(map.values());
   }, [mov]);
 
-  const loading = vendasQ.isLoading || comprasQ.isLoading || movQ.isLoading || produtosQ.isLoading;
   const empty = !loading && vendas.length === 0 && mov.length === 0 && produtos.length === 0;
 
   return (

@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useProdutos } from "@/hooks/useProdutos";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { listarProdutos, excluirProduto, } from "@/service/produto.service";
-import { listarGiroProdutos } from "@/service/vendas.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
@@ -18,6 +18,8 @@ import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/useRealtime";
 import { queryKeys } from "@/constants/queryKeys";
+import type { StatusFiltroEstoque } from "@/types/produtos";
+import { useGiroProdutos } from "@/hooks/useGiroProdutos";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -26,17 +28,12 @@ function EstoquePage() {
   const qc = useQueryClient();
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState<string>("__all");
-  const [status, setStatus] = useState<"todos" | "ok" | "baixo" | "zerado" | "inativo">("todos");
+  const [status, setStatus] = useState<StatusFiltroEstoque>("todos");
   const [detalhes, setDetalhes] = useState<ProdutoFull | null>(null);
 
-  const { data: produtos = [], isLoading } = useQuery({
-    queryKey: queryKeys.produtos.all,
-    queryFn: listarProdutos,
-  });
-  const { data: vendas = [] } = useQuery({
-    queryKey: queryKeys.produtos.giro,
-    queryFn: listarGiroProdutos,
-  });
+  const { produtos, isLoading } = useProdutos();
+
+  const { vendas } = useGiroProdutos();
 
   const giroMap = useMemo(() => {
     const m = new Map<string, number>();

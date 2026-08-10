@@ -10,7 +10,6 @@ import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { toast } from "sonner";
 import { useRealtime } from "@/hooks/useRealtime";
 import { queryKeys } from "@/constants/queryKeys";
-import type { StatusFiltroEstoque } from "@/types/produtos";
 import { useGiroProdutos } from "@/hooks/useGiroProdutos";
 import { EstoqueResumo } from "@/components/estoque/EstoqueResumo";
 import { EstoqueFiltros } from "@/components/estoque/EstoqueFiltros";
@@ -21,11 +20,18 @@ export const Route = createFileRoute("/_authenticated/estoque")({ component: Est
 
 function EstoquePage() {
   useRealtime(["produtos", "vendas"]);
+
   const qc = useQueryClient();
+
   const [q, setQ] = useState("");
-  const [categoria, setCategoria] = useState<string>("__all");
-  const [status, setStatus] = useState<StatusFiltroEstoque>("todos");
-  const [detalhes, setDetalhes] = useState<ProdutoFull | null>(null);
+  const [categoria, setCategoria] = useState("__all");
+
+  const [status, setStatus] = useState<
+    "todos" | "ok" | "baixo" | "zerado" | "inativo"
+  >("todos"); const [detalhes, setDetalhes] = useState<ProdutoFull | null>(null);
+
+  const [ordemCodigo, setOrdemCodigo] =
+    useState<"codigo-asc" | "codigo-desc">("codigo-asc");
 
   const { produtos, isLoading } = useProdutos();
 
@@ -33,35 +39,76 @@ function EstoquePage() {
 
   const giroMap = useMemo(() => {
     const m = new Map<string, number>();
-    for (const v of vendas) m.set(v.descricao ?? "", (m.get(v.descricao ?? "") ?? 0) + Number(v.quantidade ?? 0));
+
+    for (const v of vendas) {
+      m.set(
+        v.descricao ?? "",
+        (m.get(v.descricao ?? "") ?? 0) +
+        Number(v.quantidade ?? 0)
+      );
+    }
+
     return m;
   }, [vendas]);
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
-    for (const p of produtos) if (p.categoria) set.add(p.categoria);
+
+    for (const p of produtos) {
+      if (p.categoria) {
+        set.add(p.categoria);
+      }
+    }
+
     return Array.from(set).sort();
   }, [produtos]);
 
   const filtered = useMemo(() => {
     const ql = q.toLowerCase();
-    return produtos.filter((p) => {
+
+    const resultado = produtos.filter((p) => {
       if (q) {
         const nome = (p.nome ?? p.descricao ?? "").toLowerCase();
         const desc = (p.descricao ?? "").toLowerCase();
         const marca = (p.marca ?? "").toLowerCase();
-        if (!nome.includes(ql) && !desc.includes(ql) && !marca.includes(ql) && !String(p.codigo).includes(q)) return false;
+
+        if (
+          !nome.includes(ql) &&
+          !desc.includes(ql) &&
+          !marca.includes(ql) &&
+          !String(p.codigo).includes(q)
+        ) {
+          return false;
+        }
       }
-      if (categoria !== "__all" && (p.categoria ?? "") !== categoria) return false;
+
+      if (
+        categoria !== "__all" &&
+        (p.categoria ?? "") !== categoria
+      ) {
+        return false;
+      }
+
       const e = Number(p.estoque_atual ?? 0);
       const min = Number(p.estoque_minimo ?? 0);
+
       if (status === "ok" && !(e > min)) return false;
       if (status === "baixo" && !(e > 0 && e <= min)) return false;
       if (status === "zerado" && !(e <= 0)) return false;
       if (status === "inativo" && p.ativo !== false) return false;
+
       return true;
     });
-  }, [produtos, q, categoria, status]);
+
+    return [...resultado].sort((a, b) => {
+      const codigoA = Number(a.codigo ?? 0);
+      const codigoB = Number(b.codigo ?? 0);
+
+      return ordemCodigo === "codigo-asc"
+        ? codigoA - codigoB
+        : codigoB - codigoA;
+    });
+  }, [produtos, q, categoria, status, ordemCodigo]);
 
   const k = useMemo(() => {
     const totalProdutos = produtos.length;
@@ -121,9 +168,11 @@ function EstoquePage() {
             categoria={categoria}
             status={status}
             categorias={categorias}
+            ordemCodigo={ordemCodigo}
             onBuscaChange={setQ}
             onCategoriaChange={setCategoria}
             onStatusChange={setStatus}
+            onOrdemCodigoChange={setOrdemCodigo}
           />
         }
       >

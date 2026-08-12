@@ -2,7 +2,7 @@ import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Wallet, Calculator,
-  Sparkles, Upload, LogOut, Menu, X, Shield, LineChart, TrendingDown, Receipt
+  Sparkles, Upload, LogOut, Menu, X, Shield, LineChart, TrendingDown, Receipt, Truck
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUserRole } from "@/hooks/useAuth";
@@ -18,6 +18,7 @@ const NAV: NavItem[] = [
   { to: "/despesas", label: "Despesas", icon: TrendingDown },
   { to: "/fluxo-caixa", label: "Fluxo de Caixa", icon: Receipt },
   { to: "/estoque", label: "Estoque", icon: Package },
+  { to: "/compras", label: "Compras", icon: Truck },
   { to: "/financeiro", label: "Financeiro", icon: Wallet },
   { to: "/precificacao", label: "Precificação", icon: Calculator },
   { to: "/insights", label: "Insights", icon: Sparkles },
@@ -50,8 +51,8 @@ export function AppShell({ children, title, subtitle, actions }: {
             <img
               src="/icon-512.png"
               alt="icon-512"
-              className="h-10 w-10 rounded-lg object-cover"/>
-              <div className="leading-tight">
+              className="h-10 w-10 rounded-lg object-cover" />
+            <div className="leading-tight">
               <div className="text-sm font-semibold text-sidebar-foreground">Gestão de Vendas</div>
               <div className="text-[10px] uppercase tracking-wider text-muted-foreground">COMERCIAL</div>
             </div>

@@ -1,28 +1,12 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import {
-    Dialog,
-    DialogContent,
-    DialogHeader,
-    DialogTitle,
-    DialogTrigger,
-    DialogFooter,
-} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
-import {
-    listarProdutosParaCompra,
-    registrarCompra,
-} from "@/service/compras.service";
+import { listarProdutosParaCompra, registrarCompra,} from "@/service/compras.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { toast } from "sonner";
 
@@ -36,6 +20,11 @@ export function NovaCompraDialog() {
     const [quantidade, setQuantidade] = useState("1");
     const [custoUnitario, setCustoUnitario] = useState("");
     const [fornecedor, setFornecedor] = useState("");
+    const [dataVencimento, setDataVencimento] = useState("");
+
+    const [formaPagamento, setFormaPagamento] =
+        useState<"a_vista" | "a_prazo">("a_vista");
+
 
     const { data: produtos = [] } = useQuery({
         queryKey: queryKeys.produtos.giro,
@@ -64,6 +53,8 @@ export function NovaCompraDialog() {
         setQuantidade("1");
         setCustoUnitario("");
         setFornecedor("");
+        setFormaPagamento("a_vista");
+        setDataVencimento("");
     };
 
     const onSave = async () => {
@@ -84,6 +75,12 @@ export function NovaCompraDialog() {
             return toast.error("Custo unitário inválido");
         }
 
+        if (formaPagamento === "a_prazo" && !dataVencimento) {
+            return toast.error(
+                "Informe a data de vencimento da compra a prazo"
+            );
+        }
+
         setSaving(true);
 
         try {
@@ -92,6 +89,11 @@ export function NovaCompraDialog() {
                 quantidade: qtd,
                 custoUnitario: custo,
                 fornecedor: fornecedor.trim() || undefined,
+                formaPagamento,
+                dataVencimento:
+                    formaPagamento === "a_prazo"
+                        ? dataVencimento
+                        : undefined,
             });
 
             toast.success("Compra registrada com sucesso!");
@@ -174,7 +176,9 @@ export function NovaCompraDialog() {
                                 type="number"
                                 min="1"
                                 value={quantidade}
-                                onChange={(e) => setQuantidade(e.target.value)}
+                                onChange={(e) =>
+                                    setQuantidade(e.target.value)
+                                }
                             />
                         </div>
 
@@ -214,9 +218,56 @@ export function NovaCompraDialog() {
                         <Input
                             placeholder="Fornecedor (opcional)"
                             value={fornecedor}
-                            onChange={(e) => setFornecedor(e.target.value)}
+                            onChange={(e) =>
+                                setFornecedor(e.target.value)
+                            }
                         />
                     </div>
+
+                    <div>
+                        <Label>Forma de pagamento</Label>
+
+                        <Select
+                            value={formaPagamento}
+                            onValueChange={(value) =>
+                                setFormaPagamento(
+                                    value as "a_vista" | "a_prazo"
+                                )
+                            }
+                        >
+                            <SelectTrigger>
+                                <SelectValue placeholder="Selecione a forma de pagamento" />
+                            </SelectTrigger>
+
+                            <SelectContent>
+                                <SelectItem value="a_vista">
+                                    À vista
+                                </SelectItem>
+
+                                <SelectItem value="a_prazo">
+                                    A prazo
+                                </SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {formaPagamento === "a_prazo" && (
+                        <div>
+                            <Label>Data de vencimento *</Label>
+
+                            <Input
+                                type="date"
+                                value={dataVencimento}
+                                onChange={(e) =>
+                                    setDataVencimento(e.target.value)
+                                }
+                            />
+
+                            <p className="mt-1 text-xs text-muted-foreground">
+                                A compra ficará pendente até ser paga.
+                            </p>
+                        </div>
+                    )}
                 </div>
 
                 <DialogFooter>

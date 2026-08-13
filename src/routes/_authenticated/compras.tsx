@@ -8,16 +8,11 @@ import { NovaCompraDialog } from "@/components/compras/NovaCompraDialog";
 import { excluirCompra } from "@/service/compras.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { Input } from "@/components/ui/input";
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { Badge } from "@/components/ui/badge";
 
 export const Route = createFileRoute("/_authenticated/compras")({
     component: ComprasPage,
@@ -266,6 +261,18 @@ function ComprasPage() {
                                             </th>
 
                                             <th className="px-3 py-3 font-medium">
+                                                Pagamento
+                                            </th>
+
+                                            <th className="px-3 py-3 font-medium">
+                                                Status
+                                            </th>
+
+                                            <th className="px-3 py-3 font-medium">
+                                                Vencimento
+                                            </th>
+
+                                            <th className="px-3 py-3 font-medium">
                                                 Data
                                             </th>
 
@@ -290,25 +297,41 @@ function ComprasPage() {
                                                 </td>
 
                                                 <td className="px-3 py-3">
-                                                    {compra.quantidade}
+                                                    {compra.quantidade ?? "—"}
                                                 </td>
 
                                                 <td className="px-3 py-3">
-                                                    {brl(
-                                                        Number(
-                                                            compra.custo_unitario ?? 0
-                                                        )
-                                                    )}
+                                                    {brl(Number(compra.custo_unitario ?? 0))}
                                                 </td>
 
                                                 <td className="px-3 py-3 font-medium">
-                                                    {brl(
-                                                        Number(compra.custo_total ?? 0)
-                                                    )}
+                                                    {brl(Number(compra.custo_total ?? 0))}
                                                 </td>
 
                                                 <td className="px-3 py-3 text-muted-foreground">
                                                     {compra.fornecedor ?? "—"}
+                                                </td>
+
+                                                <td className="px-3 py-3">
+                                                    {compra.forma_pagamento === "a_prazo"
+                                                        ? "A prazo"
+                                                        : "À vista"}
+                                                </td>
+
+                                                <td className="px-3 py-3">
+                                                    {compra.status_pagamento === "pago" ? (
+                                                        <Badge variant="default">
+                                                            Pago
+                                                        </Badge>
+                                                    ) : (
+                                                        <Badge variant="outline">
+                                                            Pendente
+                                                        </Badge>
+                                                    )}
+                                                </td>
+
+                                                <td className="px-3 py-3">
+                                                    {formatarData(compra.data_vencimento)}
                                                 </td>
 
                                                 <td className="px-3 py-3">

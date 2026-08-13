@@ -49,6 +49,8 @@ type RegistrarCompraInput = {
     custoUnitario: number;
     data?: string;
     fornecedor?: string;
+    formaPagamento?: "a_vista" | "a_prazo";
+    dataVencimento?: string;
 
 };
 
@@ -59,6 +61,8 @@ export async function registrarCompra(input: RegistrarCompraInput) {
         p_custo_unitario: input.custoUnitario,
         p_fornecedor: input.fornecedor ?? null,
         p_data: input.data ?? new Date().toISOString().slice(0, 10),
+        p_forma_pagamento: input.formaPagamento ?? "a_vista",
+        p_data_vencimento: input.dataVencimento ?? null,
     });
 
     if (error) {

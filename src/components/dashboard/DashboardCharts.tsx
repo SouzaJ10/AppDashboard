@@ -24,25 +24,59 @@ export function DashboardCharts({
   fluxo,
 }: Props) {
   return (
-    <div className="mt-6 grid grid-cols-1 gap-4 xl:grid-cols-2">
+    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      {/* FATURAMENTO E LUCRO */}
 
-      <Section title="Faturamento × Lucro por mês">
+      <Section title="Faturamento × lucro bruto por mês">
         <div className="h-72">
           <ResponsiveContainer>
             <AreaChart data={monthly}>
               <defs>
-                <linearGradient id="gFat" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-1)" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="var(--color-chart-1)" stopOpacity={0} />
+                <linearGradient
+                  id="gFat"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-chart-1)"
+                    stopOpacity={0.4}
+                  />
+
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-chart-1)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
 
-                <linearGradient id="gLuc" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-2)" stopOpacity={0.4} />
-                  <stop offset="100%" stopColor="var(--color-chart-2)" stopOpacity={0} />
+                <linearGradient
+                  id="gLuc"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-chart-2)"
+                    stopOpacity={0.4}
+                  />
+
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-chart-2)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
 
               <XAxis
                 dataKey="mes"
@@ -52,15 +86,20 @@ export function DashboardCharts({
               />
 
               <YAxis
-                tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
+                tickFormatter={(v) =>
+                  `R$${Math.round(v / 1000)}k`
+                }
                 fontSize={11}
               />
 
               <Tooltip
-                formatter={(v: number) => brl(v)}
+                formatter={(v: number) =>
+                  brl(v)
+                }
                 contentStyle={{
                   borderRadius: 8,
-                  border: "1px solid var(--color-border)",
+                  border:
+                    "1px solid var(--color-border)",
                 }}
               />
 
@@ -78,7 +117,7 @@ export function DashboardCharts({
               <Area
                 type="monotone"
                 dataKey="lucro"
-                name="Lucro"
+                name="Lucro bruto"
                 stroke="var(--color-chart-2)"
                 fill="url(#gLuc)"
                 strokeWidth={2}
@@ -88,11 +127,16 @@ export function DashboardCharts({
         </div>
       </Section>
 
-      <Section title="Custos × Receita por mês">
+      {/* RECEITA E CUSTO DAS VENDAS */}
+
+      <Section title="Receita × custo das vendas por mês">
         <div className="h-72">
           <ResponsiveContainer>
             <BarChart data={monthly}>
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
 
               <XAxis
                 dataKey="mes"
@@ -102,15 +146,20 @@ export function DashboardCharts({
               />
 
               <YAxis
-                tickFormatter={(v) => `R$${Math.round(v / 1000)}k`}
+                tickFormatter={(v) =>
+                  `R$${Math.round(v / 1000)}k`
+                }
                 fontSize={11}
               />
 
               <Tooltip
-                formatter={(v: number) => brl(v)}
+                formatter={(v: number) =>
+                  brl(v)
+                }
                 contentStyle={{
                   borderRadius: 8,
-                  border: "1px solid var(--color-border)",
+                  border:
+                    "1px solid var(--color-border)",
                 }}
               />
 
@@ -125,7 +174,7 @@ export function DashboardCharts({
 
               <Bar
                 dataKey="custo"
-                name="Custo"
+                name="Custo das vendas"
                 fill="var(--color-chart-5)"
                 radius={[6, 6, 0, 0]}
               />
@@ -134,21 +183,42 @@ export function DashboardCharts({
         </div>
       </Section>
 
+      {/* FLUXO DE CAIXA REAL */}
+
       <Section
-        title="Fluxo de caixa (saldo acumulado)"
+        title="Fluxo de caixa"
+        description="Entradas, saídas e saldo acumulado"
         className="xl:col-span-2"
       >
         <div className="h-72">
           <ResponsiveContainer>
             <AreaChart data={fluxo}>
               <defs>
-                <linearGradient id="gSaldo" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="var(--color-chart-3)" stopOpacity={0.45} />
-                  <stop offset="100%" stopColor="var(--color-chart-3)" stopOpacity={0} />
+                <linearGradient
+                  id="gSaldo"
+                  x1="0"
+                  y1="0"
+                  x2="0"
+                  y2="1"
+                >
+                  <stop
+                    offset="0%"
+                    stopColor="var(--color-chart-3)"
+                    stopOpacity={0.45}
+                  />
+
+                  <stop
+                    offset="100%"
+                    stopColor="var(--color-chart-3)"
+                    stopOpacity={0}
+                  />
                 </linearGradient>
               </defs>
 
-              <CartesianGrid strokeDasharray="3 3" stroke="var(--color-border)" />
+              <CartesianGrid
+                strokeDasharray="3 3"
+                stroke="var(--color-border)"
+              />
 
               <XAxis
                 dataKey="mes"
@@ -158,15 +228,20 @@ export function DashboardCharts({
               />
 
               <YAxis
-                tickFormatter={(v) => `R$${Math.round(v)}`}
+                tickFormatter={(v) =>
+                  `R$${Math.round(v)}`
+                }
                 fontSize={11}
               />
 
               <Tooltip
-                formatter={(v: number) => brl(v)}
+                formatter={(v: number) =>
+                  brl(v)
+                }
                 contentStyle={{
                   borderRadius: 8,
-                  border: "1px solid var(--color-border)",
+                  border:
+                    "1px solid var(--color-border)",
                 }}
               />
 
@@ -202,7 +277,6 @@ export function DashboardCharts({
           </ResponsiveContainer>
         </div>
       </Section>
-
     </div>
   );
 }

@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 
 export const Route = createFileRoute("/_authenticated/compras")({
     component: ComprasPage,
@@ -41,12 +42,6 @@ function ComprasPage() {
 
     // EXCLUSÃO DE COMPRA
     const onDelete = async (id: string) => {
-        const confirmar = window.confirm(
-            "Tem certeza que deseja excluir esta compra?"
-        );
-
-        if (!confirmar) return;
-
         try {
             await excluirCompra(id);
 
@@ -82,12 +77,6 @@ function ComprasPage() {
     };
 
     const onPay = async (id: string) => {
-        const confirmar = window.confirm(
-            "Deseja marcar esta compra como paga?"
-        );
-
-        if (!confirmar) return;
-
         try {
             await pagarCompra(id);
 
@@ -377,28 +366,148 @@ function ComprasPage() {
                                                     <div className="flex justify-end gap-1">
                                                         {compra.forma_pagamento === "a_prazo" &&
                                                             compra.status_pagamento !== "pago" && (
+                                                                <AlertDialog>
+                                                                    <AlertDialogTrigger asChild>
+                                                                        <Button
+                                                                            variant="ghost"
+                                                                            size="icon"
+                                                                            className="text-success hover:text-success"
+                                                                            aria-label="Pagar compra"
+                                                                            title="Marcar como paga"
+                                                                        >
+                                                                            <CheckCircle className="h-4 w-4" />
+                                                                        </Button>
+                                                                    </AlertDialogTrigger>
+
+                                                                    <AlertDialogContent>
+                                                                        <AlertDialogHeader>
+                                                                            <AlertDialogTitle>
+                                                                                Confirmar pagamento?
+                                                                            </AlertDialogTitle>
+
+                                                                            <AlertDialogDescription asChild>
+                                                                                <div className="space-y-3">
+                                                                                    <p>
+                                                                                        Você está prestes a marcar esta compra como paga.
+                                                                                    </p>
+
+                                                                                    <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                                                                                        <p>
+                                                                                            <strong>Produto:</strong>{" "}
+                                                                                            {compra.descricao ?? "—"}
+                                                                                        </p>
+
+                                                                                        <p>
+                                                                                            <strong>Valor:</strong>{" "}
+                                                                                            {brl(Number(compra.custo_total ?? 0))}
+                                                                                        </p>
+
+                                                                                        <p>
+                                                                                            <strong>Vencimento:</strong>{" "}
+                                                                                            {formatarData(compra.data_vencimento)}
+                                                                                        </p>
+                                                                                    </div>
+
+                                                                                    <p>
+                                                                                        Ao confirmar, o valor será lançado como saída no caixa.
+                                                                                    </p>
+                                                                                </div>
+                                                                            </AlertDialogDescription>
+                                                                        </AlertDialogHeader>
+
+                                                                        <AlertDialogFooter>
+                                                                            <AlertDialogCancel>
+                                                                                Cancelar
+                                                                            </AlertDialogCancel>
+
+                                                                            <AlertDialogAction
+                                                                                onClick={() => onPay(compra.id)}
+                                                                            >
+                                                                                Confirmar pagamento
+                                                                            </AlertDialogAction>
+                                                                        </AlertDialogFooter>
+                                                                    </AlertDialogContent>
+                                                                </AlertDialog>
+                                                            )}
+
+                                                        <AlertDialog>
+                                                            <AlertDialogTrigger asChild>
                                                                 <Button
                                                                     variant="ghost"
                                                                     size="icon"
-                                                                    className="text-success hover:text-success"
-                                                                    aria-label="Pagar compra"
-                                                                    title="Marcar como paga"
-                                                                    onClick={() => onPay(compra.id)}
+                                                                    className="text-muted-foreground hover:text-destructive"
+                                                                    aria-label="Excluir compra"
+                                                                    title="Excluir compra"
                                                                 >
-                                                                    <CheckCircle className="h-4 w-4" />
+                                                                    <Trash2 className="h-4 w-4" />
                                                                 </Button>
-                                                            )}
+                                                            </AlertDialogTrigger>
 
-                                                        <Button
-                                                            variant="ghost"
-                                                            size="icon"
-                                                            className="text-muted-foreground hover:text-destructive"
-                                                            aria-label="Excluir compra"
-                                                            title="Excluir compra"
-                                                            onClick={() => onDelete(compra.id)}
-                                                        >
-                                                            <Trash2 className="h-4 w-4" />
-                                                        </Button>
+                                                            <AlertDialogContent>
+                                                                <AlertDialogHeader>
+                                                                    <AlertDialogTitle>
+                                                                        Excluir compra?
+                                                                    </AlertDialogTitle>
+
+                                                                    <AlertDialogDescription asChild>
+                                                                        <div className="space-y-3">
+                                                                            <p>
+                                                                                Esta ação removerá a compra e desfará os efeitos
+                                                                                relacionados ao estoque e ao financeiro.
+                                                                            </p>
+
+                                                                            <div className="rounded-lg border bg-muted/40 p-3 text-sm">
+                                                                                <p>
+                                                                                    <strong>Produto:</strong>{" "}
+                                                                                    {compra.descricao ?? "—"}
+                                                                                </p>
+
+                                                                                <p>
+                                                                                    <strong>Quantidade:</strong>{" "}
+                                                                                    {compra.quantidade ?? "—"}
+                                                                                </p>
+
+                                                                                <p>
+                                                                                    <strong>Valor:</strong>{" "}
+                                                                                    {brl(Number(compra.custo_total ?? 0))}
+                                                                                </p>
+
+                                                                                <p>
+                                                                                    <strong>Pagamento:</strong>{" "}
+                                                                                    {compra.forma_pagamento === "a_prazo"
+                                                                                        ? "A prazo"
+                                                                                        : "À vista"}
+                                                                                </p>
+
+                                                                                <p>
+                                                                                    <strong>Status:</strong>{" "}
+                                                                                    {compra.status_pagamento === "pago"
+                                                                                        ? "Pago"
+                                                                                        : "Pendente"}
+                                                                                </p>
+                                                                            </div>
+
+                                                                            <p>
+                                                                                Esta ação não pode ser desfeita.
+                                                                            </p>
+                                                                        </div>
+                                                                    </AlertDialogDescription>
+                                                                </AlertDialogHeader>
+
+                                                                <AlertDialogFooter>
+                                                                    <AlertDialogCancel>
+                                                                        Cancelar
+                                                                    </AlertDialogCancel>
+
+                                                                    <AlertDialogAction
+                                                                        onClick={() => onDelete(compra.id)}
+                                                                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                                                    >
+                                                                        Excluir compra
+                                                                    </AlertDialogAction>
+                                                                </AlertDialogFooter>
+                                                            </AlertDialogContent>
+                                                        </AlertDialog>
                                                     </div>
                                                 </td>
                                             </tr>

@@ -32,6 +32,16 @@ export async function excluirCompra(id: string) {
     }
 }
 
+export async function pagarCompra(id: string) {
+    const { error } = await supabase.rpc("pagar_compra", {
+        p_compra_id: id,
+    });
+
+    if (error) {
+        throw error;
+    }
+}
+
 export async function listarProdutosParaCompra() {
     const { data, error } = await supabase
         .from("produtos")

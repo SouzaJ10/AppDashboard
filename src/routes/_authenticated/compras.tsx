@@ -5,12 +5,12 @@ import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { useCompras } from "@/hooks/useCompras";
 import { NovaCompraDialog } from "@/components/compras/NovaCompraDialog";
-import { excluirCompra } from "@/service/compras.service";
+import { excluirCompra, pagarCompra } from "@/service/compras.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
-import { Trash2 } from "lucide-react";
+import { CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 
@@ -73,6 +73,41 @@ function ComprasPage() {
             console.error("Erro ao excluir compra:", e);
 
             toast.error("Erro ao excluir compra", {
+                description:
+                    e instanceof Error
+                        ? e.message
+                        : "Ocorreu um erro inesperado.",
+            });
+        }
+    };
+
+    const onPay = async (id: string) => {
+        const confirmar = window.confirm(
+            "Deseja marcar esta compra como paga?"
+        );
+
+        if (!confirmar) return;
+
+        try {
+            await pagarCompra(id);
+
+            toast.success("Compra paga com sucesso!");
+
+            await Promise.all([
+                qc.invalidateQueries({
+                    queryKey: queryKeys.compras.all,
+                }),
+                qc.invalidateQueries({
+                    queryKey: queryKeys.movimentacoes.all,
+                }),
+                qc.invalidateQueries({
+                    queryKey: queryKeys.dashboard.all,
+                }),
+            ]);
+        } catch (e) {
+            console.error("Erro ao pagar compra:", e);
+
+            toast.error("Erro ao pagar compra", {
                 description:
                     e instanceof Error
                         ? e.message
@@ -339,16 +374,32 @@ function ComprasPage() {
                                                 </td>
 
                                                 <td className="px-3 py-3 text-right">
-                                                    <Button
-                                                        variant="ghost"
-                                                        size="icon"
-                                                        className="text-muted-foreground hover:text-destructive"
-                                                        aria-label="Excluir compra"
-                                                        title="Excluir compra"
-                                                        onClick={() => onDelete(compra.id)}
-                                                    >
-                                                        <Trash2 className="h-4 w-4" />
-                                                    </Button>
+                                                    <div className="flex justify-end gap-1">
+                                                        {compra.forma_pagamento === "a_prazo" &&
+                                                            compra.status_pagamento !== "pago" && (
+                                                                <Button
+                                                                    variant="ghost"
+                                                                    size="icon"
+                                                                    className="text-success hover:text-success"
+                                                                    aria-label="Pagar compra"
+                                                                    title="Marcar como paga"
+                                                                    onClick={() => onPay(compra.id)}
+                                                                >
+                                                                    <CheckCircle className="h-4 w-4" />
+                                                                </Button>
+                                                            )}
+
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            className="text-muted-foreground hover:text-destructive"
+                                                            aria-label="Excluir compra"
+                                                            title="Excluir compra"
+                                                            onClick={() => onDelete(compra.id)}
+                                                        >
+                                                            <Trash2 className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
                                                 </td>
                                             </tr>
                                         ))}

@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger,} from "@/components/ui/alert-dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 import { DespesaDialog } from "@/components/despesas/DespesaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
 import { brl, dateBR } from "@/lib/format";
@@ -78,12 +78,37 @@ function DespesasPage() {
 
   const onDelete = async (id: string) => {
     try {
-      const { error } = await supabase.from("despesas" as never).delete().eq("id", id);
-      if (error) throw error;
+      const { error } = await supabase.rpc(
+        "excluir_despesa",
+        {
+          p_despesa_id: id,
+        }
+      );
+
+      if (error) {
+        throw error;
+      }
+
       toast.success("Despesa excluída");
-      qc.invalidateQueries({ queryKey: ["despesas"] });
+
+      await Promise.all([
+        qc.invalidateQueries({
+          queryKey: ["despesas"],
+        }),
+        qc.invalidateQueries({
+          queryKey: ["mov-fin"],
+        }),
+        qc.invalidateQueries({
+          queryKey: ["movimentacoes"],
+        }),
+      ]);
     } catch (e) {
-      toast.error("Erro ao excluir", { description: e instanceof Error ? e.message : String(e) });
+      toast.error("Erro ao excluir", {
+        description:
+          e instanceof Error
+            ? e.message
+            : String(e),
+      });
     }
   };
 

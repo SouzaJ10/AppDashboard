@@ -9,6 +9,7 @@ import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, } from "recharts";
 import { TrendingDown, TrendingUp, Wallet, } from "lucide-react";
 import { brl, dateBR } from "@/lib/format";
+import { Badge } from "@/components/ui/badge";
 
 type Periodo = "diario" | "semanal" | "mensal" | "anual";
 
@@ -459,18 +460,11 @@ function FinanceiroPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Data</TableHead>
-
-                  <TableHead>
-                    Descrição
-                  </TableHead>
-
-                  <TableHead className="text-right">
-                    Entrada
-                  </TableHead>
-
-                  <TableHead className="text-right">
-                    Saída
-                  </TableHead>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Categoria</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="text-right">Entrada</TableHead>
+                  <TableHead className="text-right">Saída</TableHead>
                 </TableRow>
               </TableHeader>
 
@@ -478,33 +472,57 @@ function FinanceiroPage() {
                 {[...mov]
                   .reverse()
                   .slice(0, 100)
-                  .map((m) => (
-                    <TableRow key={m.id}>
-                      <TableCell>
-                        {dateBR(m.data)}
-                      </TableCell>
+                  .map((m) => {
+                    const tipo = m.tipo ?? "outros";
 
-                      <TableCell className="max-w-xs truncate">
-                        {m.descricao}
-                      </TableCell>
+                    return (
+                      <TableRow key={m.id}>
+                        <TableCell>
+                          {dateBR(m.data)}
+                        </TableCell>
 
-                      <TableCell className="text-right text-success">
-                        {Number(m.entrada) > 0
-                          ? brl(
-                            Number(m.entrada)
-                          )
-                          : "—"}
-                      </TableCell>
+                        <TableCell>
+                          {tipo === "venda" ? (
+                            <Badge variant="default">
+                              Venda
+                            </Badge>
+                          ) : tipo === "compra" ? (
+                            <Badge variant="outline">
+                              Compra
+                            </Badge>
+                          ) : tipo === "despesa" ? (
+                            <Badge variant="outline">
+                              Despesa
+                            </Badge>
+                          ) : (
+                            <Badge variant="outline">
+                              Outros
+                            </Badge>
+                          )}
+                        </TableCell>
 
-                      <TableCell className="text-right text-destructive">
-                        {Number(m.saida) > 0
-                          ? brl(
-                            Number(m.saida)
-                          )
-                          : "—"}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        <TableCell>
+                          {m.categoria ?? "Outros"}
+                        </TableCell>
+
+                        <TableCell className="max-w-xs truncate">
+                          {m.descricao}
+                        </TableCell>
+
+                        <TableCell className="text-right text-success">
+                          {Number(m.entrada) > 0
+                            ? brl(Number(m.entrada))
+                            : "—"}
+                        </TableCell>
+
+                        <TableCell className="text-right text-destructive">
+                          {Number(m.saida) > 0
+                            ? brl(Number(m.saida))
+                            : "—"}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
               </TableBody>
             </Table>
           </div>

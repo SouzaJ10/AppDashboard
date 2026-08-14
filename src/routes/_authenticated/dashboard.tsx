@@ -52,8 +52,8 @@ function DashboardPage() {
 
   return (
     <AppShell
-      title="Dashboard Executiva"
-      subtitle="Visão geral em tempo real"
+      title="Dashboard Executivo"
+      subtitle="Visão financeira, operacional e de estoque em tempo real"
     >
       {empty ? (
         <EmptyState
@@ -74,7 +74,7 @@ function DashboardPage() {
             totalVendas={vendas.length}
           />
 
-          <div className="mt-6">
+          <div className="mt-10">
             <DashboardCharts
               monthly={monthly}
               fluxo={fluxo}

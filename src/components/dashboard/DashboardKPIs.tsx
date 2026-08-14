@@ -1,5 +1,18 @@
-import { TrendingUp, DollarSign, ShoppingCart, Package, Target, AlertTriangle, XCircle, Boxes, Wallet, BarChart3, CalendarDays, Clock3,} from "lucide-react";
-import { KpiCard } from "./KpiCard";
+import {
+  AlertTriangle,
+  BarChart3,
+  Boxes,
+  CheckCircle2,
+  Clock3,
+  DollarSign,
+  Package,
+  ShoppingCart,
+  Target,
+  TrendingUp,
+  Wallet,
+  XCircle,
+} from "lucide-react";
+
 import { brl, num, pct } from "@/lib/format";
 
 type Props = {
@@ -7,165 +20,444 @@ type Props = {
   totalVendas: number;
 };
 
+function MiniStat({
+  label,
+  value,
+  hint,
+  icon: Icon,
+}: {
+  label: string;
+  value: string;
+  hint?: string;
+  icon: React.ElementType;
+}) {
+  return (
+    <div className="flex items-start gap-3 rounded-xl border bg-card/60 p-4">
+      <div className="grid h-10 w-10 shrink-0 place-items-center rounded-lg bg-muted">
+        <Icon className="h-5 w-5 text-muted-foreground" />
+      </div>
+
+      <div className="min-w-0">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+          {label}
+        </p>
+
+        <p className="mt-1 text-xl font-semibold tracking-tight">
+          {value}
+        </p>
+
+        {hint && (
+          <p className="mt-1 text-xs text-muted-foreground">
+            {hint}
+          </p>
+        )}
+      </div>
+    </div>
+  );
+}
+
 export function DashboardKPIs({
   k,
   totalVendas,
 }: Props) {
+  const lucroPositivo = k.lucroLiquido >= 0;
+  const saldoPositivo = k.saldoCaixa >= 0;
+
   return (
-    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-      {/* FINANCEIRO PRINCIPAL */}
+    <div className="space-y-8">
+      {/* RESUMO EXECUTIVO */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">
+            Resumo executivo
+          </h2>
 
-      <KpiCard
-        label="Faturamento Total"
-        value={brl(k.faturamento)}
-        icon={DollarSign}
-        tone="default"
-        hint={`${totalVendas} vendas`}
-      />
+          <p className="text-sm text-muted-foreground">
+            Principais números financeiros do negócio
+          </p>
+        </div>
 
-      <KpiCard
-        label="Lucro Bruto"
-        value={brl(k.lucro)}
-        icon={TrendingUp}
-        tone={
-          k.lucro >= 0
-            ? "success"
-            : "destructive"
-        }
-        hint={`Custo ${brl(k.custoVendas)}`}
-      />
+        <div className="grid gap-4 lg:grid-cols-3">
+          {/* SALDO */}
+          <div
+            className={[
+              "relative overflow-hidden rounded-2xl border p-6 shadow-sm",
+              saldoPositivo
+                ? "bg-gradient-to-br from-emerald-500/10 via-background to-background"
+                : "bg-gradient-to-br from-destructive/10 via-background to-background",
+            ].join(" ")}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Saldo em caixa
+                </p>
 
-      <KpiCard
-        label="Lucro Líquido"
-        value={brl(k.lucroLiquido)}
-        icon={TrendingUp}
-        tone={
-          k.lucroLiquido >= 0
-            ? "success"
-            : "destructive"
-        }
-        hint={`Margem ${pct(k.margem)}`}
-      />
+                <p
+                  className={[
+                    "mt-2 text-3xl font-bold tracking-tight",
+                    saldoPositivo
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-destructive",
+                  ].join(" ")}
+                >
+                  {brl(k.saldoCaixa)}
+                </p>
 
-      <KpiCard
-        label="Saldo em Caixa"
-        value={brl(k.saldoCaixa)}
-        icon={Wallet}
-        tone={
-          k.saldoCaixa >= 0
-            ? "success"
-            : "destructive"
-        }
-        hint={`${brl(k.entradas)} entradas • ${brl(k.saidas)} saídas`}
-      />
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {brl(k.entradas)} em entradas
+                  <span className="mx-1">•</span>
+                  {brl(k.saidas)} em saídas
+                </p>
+              </div>
 
-      {/* OBRIGAÇÕES */}
+              <div
+                className={[
+                  "grid h-12 w-12 place-items-center rounded-xl",
+                  saldoPositivo
+                    ? "bg-emerald-500/15"
+                    : "bg-destructive/15",
+                ].join(" ")}
+              >
+                <Wallet
+                  className={[
+                    "h-6 w-6",
+                    saldoPositivo
+                      ? "text-emerald-600 dark:text-emerald-400"
+                      : "text-destructive",
+                  ].join(" ")}
+                />
+              </div>
+            </div>
+          </div>
 
-      <KpiCard
-        label="Contas a Pagar"
-        value={brl(k.valorContasPagar)}
-        icon={Clock3}
-        tone="default"
-        hint={`${num(k.contasAPagar)} conta(s) pendente(s)`}
-      />
+          {/* FATURAMENTO */}
+          <div className="relative overflow-hidden rounded-2xl border bg-gradient-to-br from-primary/10 via-background to-background p-6 shadow-sm">
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Faturamento
+                </p>
 
-      <KpiCard
-        label="Valor Vencido"
-        value={brl(k.valorVencido)}
-        icon={AlertTriangle}
-        tone={
-          k.valorVencido > 0
-            ? "destructive"
-            : "default"
-        }
-        hint={`${num(k.contasVencidas)} conta(s) vencida(s)`}
-      />
+                <p className="mt-2 text-3xl font-bold tracking-tight">
+                  {brl(k.faturamento)}
+                </p>
 
-      <KpiCard
-        label="Despesas Pendentes"
-        value={brl(k.despesasPendentes)}
-        icon={Clock3}
-        tone="default"
-        hint="Ainda não impactaram o caixa"
-      />
+                <p className="mt-3 text-xs text-muted-foreground">
+                  {num(totalVendas)} vendas registradas
+                </p>
+              </div>
 
-      <KpiCard
-        label="Despesas no Mês"
-        value={brl(k.despesasMes)}
-        icon={CalendarDays}
-        tone="destructive"
-      />
+              <div className="grid h-12 w-12 place-items-center rounded-xl bg-primary/10">
+                <DollarSign className="h-6 w-6 text-primary" />
+              </div>
+            </div>
+          </div>
 
-      {/* COMPRAS */}
+          {/* LUCRO */}
+          <div
+            className={[
+              "relative overflow-hidden rounded-2xl border p-6 shadow-sm",
+              lucroPositivo
+                ? "bg-gradient-to-br from-sky-500/10 via-background to-background"
+                : "bg-gradient-to-br from-destructive/10 via-background to-background",
+            ].join(" ")}
+          >
+            <div className="flex items-start justify-between gap-4">
+              <div>
+                <p className="text-sm font-medium text-muted-foreground">
+                  Lucro líquido
+                </p>
 
-      <KpiCard
-        label="Compras no Mês"
-        value={num(k.comprasMes)}
-        icon={ShoppingCart}
-        hint={brl(k.valorComprasMes)}
-      />
+                <p
+                  className={[
+                    "mt-2 text-3xl font-bold tracking-tight",
+                    lucroPositivo
+                      ? "text-sky-600 dark:text-sky-400"
+                      : "text-destructive",
+                  ].join(" ")}
+                >
+                  {brl(k.lucroLiquido)}
+                </p>
 
-      {/* VENDAS */}
+                <p className="mt-3 text-xs text-muted-foreground">
+                  Margem {pct(k.margem)}
+                </p>
+              </div>
 
-      <KpiCard
-        label="Quantidade Vendida"
-        value={num(k.qtdVendida)}
-        icon={BarChart3}
-      />
+              <div
+                className={[
+                  "grid h-12 w-12 place-items-center rounded-xl",
+                  lucroPositivo
+                    ? "bg-sky-500/15"
+                    : "bg-destructive/15",
+                ].join(" ")}
+              >
+                <TrendingUp
+                  className={[
+                    "h-6 w-6",
+                    lucroPositivo
+                      ? "text-sky-600 dark:text-sky-400"
+                      : "text-destructive",
+                  ].join(" ")}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
 
-      <KpiCard
-        label="Ticket Médio"
-        value={brl(k.ticket)}
-        icon={Target}
-      />
+      {/* OBRIGAÇÕES E OPERAÇÃO */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">
+            Obrigações e operação
+          </h2>
 
-      <KpiCard
-        label="ROI Médio"
-        value={pct(k.roi)}
-        icon={TrendingUp}
-        tone={
-          k.roi >= 0
-            ? "success"
-            : "destructive"
-        }
-      />
+          <p className="text-sm text-muted-foreground">
+            Compromissos financeiros e posição atual
+          </p>
+        </div>
 
-      {/* ESTOQUE */}
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <MiniStat
+            label="Contas a pagar"
+            value={brl(k.valorContasPagar)}
+            hint={`${num(k.contasAPagar)} conta(s) pendente(s)`}
+            icon={Clock3}
+          />
 
-      <KpiCard
-        label="Produtos Cadastrados"
-        value={num(k.totalProdutos)}
-        icon={Package}
-      />
+          <MiniStat
+            label="Despesas pendentes"
+            value={brl(k.despesasPendentes)}
+            hint="Ainda não impactaram o caixa"
+            icon={AlertTriangle}
+          />
 
-      <KpiCard
-        label="Valor em Estoque"
-        value={brl(k.valorEstoque)}
-        icon={Boxes}
-        hint="Custo × quantidade"
-      />
+          <MiniStat
+            label="Compras no mês"
+            value={num(k.comprasMes)}
+            hint={brl(k.valorComprasMes)}
+            icon={ShoppingCart}
+          />
 
-      <KpiCard
-        label="Estoque Baixo"
-        value={num(k.baixo)}
-        icon={AlertTriangle}
-        tone={
-          k.baixo > 0
-            ? "warning"
-            : "default"
-        }
-      />
+          <MiniStat
+            label="Valor em estoque"
+            value={brl(k.valorEstoque)}
+            hint="Custo × quantidade"
+            icon={Boxes}
+          />
+        </div>
+      </section>
 
-      <KpiCard
-        label="Sem Estoque"
-        value={num(k.zerados)}
-        icon={XCircle}
-        tone={
-          k.zerados > 0
-            ? "destructive"
-            : "default"
-        }
-      />
+      {/* INDICADORES OPERACIONAIS */}
+      <section className="rounded-2xl border bg-card/50 p-5">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <h2 className="text-base font-semibold">
+              Indicadores operacionais
+            </h2>
+
+            <p className="text-sm text-muted-foreground">
+              Eficiência comercial e desempenho
+            </p>
+          </div>
+        </div>
+
+        <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted">
+              <Target className="h-5 w-5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Ticket médio
+              </p>
+
+              <p className="text-lg font-semibold">
+                {brl(k.ticket)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted">
+              <BarChart3 className="h-5 w-5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Quantidade vendida
+              </p>
+
+              <p className="text-lg font-semibold">
+                {num(k.qtdVendida)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted">
+              <TrendingUp className="h-5 w-5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">
+                ROI médio
+              </p>
+
+              <p
+                className={[
+                  "text-lg font-semibold",
+                  k.roi >= 0
+                    ? "text-emerald-600 dark:text-emerald-400"
+                    : "text-destructive",
+                ].join(" ")}
+              >
+                {pct(k.roi)}
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="grid h-10 w-10 place-items-center rounded-lg bg-muted">
+              <Package className="h-5 w-5 text-muted-foreground" />
+            </div>
+
+            <div>
+              <p className="text-xs text-muted-foreground">
+                Produtos cadastrados
+              </p>
+
+              <p className="text-lg font-semibold">
+                {num(k.totalProdutos)}
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* ATENÇÃO */}
+      <section>
+        <div className="mb-4">
+          <h2 className="text-base font-semibold">
+            Atenção
+          </h2>
+
+          <p className="text-sm text-muted-foreground">
+            Pontos que podem exigir ação
+          </p>
+        </div>
+
+        <div className="overflow-hidden rounded-2xl border bg-card">
+          <div className="flex items-center gap-4 border-b px-5 py-4">
+            <div
+              className={[
+                "grid h-9 w-9 place-items-center rounded-lg",
+                k.baixo > 0
+                  ? "bg-amber-500/15"
+                  : "bg-emerald-500/15",
+              ].join(" ")}
+            >
+              {k.baixo > 0 ? (
+                <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">
+                Estoque baixo
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                {k.baixo > 0
+                  ? `${num(k.baixo)} produto(s) precisam de atenção`
+                  : "Nenhum produto com estoque baixo"}
+              </p>
+            </div>
+
+            <span className="text-lg font-semibold">
+              {num(k.baixo)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 border-b px-5 py-4">
+            <div
+              className={[
+                "grid h-9 w-9 place-items-center rounded-lg",
+                k.valorVencido > 0
+                  ? "bg-destructive/15"
+                  : "bg-emerald-500/15",
+              ].join(" ")}
+            >
+              {k.valorVencido > 0 ? (
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">
+                Contas vencidas
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                {k.contasVencidas > 0
+                  ? `${num(k.contasVencidas)} conta(s) vencida(s)`
+                  : "Nenhuma conta vencida"}
+              </p>
+            </div>
+
+            <span
+              className={[
+                "text-lg font-semibold",
+                k.valorVencido > 0
+                  ? "text-destructive"
+                  : "",
+              ].join(" ")}
+            >
+              {brl(k.valorVencido)}
+            </span>
+          </div>
+
+          <div className="flex items-center gap-4 px-5 py-4">
+            <div
+              className={[
+                "grid h-9 w-9 place-items-center rounded-lg",
+                k.zerados > 0
+                  ? "bg-destructive/15"
+                  : "bg-emerald-500/15",
+              ].join(" ")}
+            >
+              {k.zerados > 0 ? (
+                <XCircle className="h-5 w-5 text-destructive" />
+              ) : (
+                <CheckCircle2 className="h-5 w-5 text-emerald-600 dark:text-emerald-400" />
+              )}
+            </div>
+
+            <div className="min-w-0 flex-1">
+              <p className="font-medium">
+                Produtos sem estoque
+              </p>
+
+              <p className="text-sm text-muted-foreground">
+                {k.zerados > 0
+                  ? `${num(k.zerados)} produto(s) indisponível(is)`
+                  : "Nenhum produto sem estoque"}
+              </p>
+            </div>
+
+            <span className="text-lg font-semibold">
+              {num(k.zerados)}
+            </span>
+          </div>
+        </div>
+      </section>
     </div>
   );
 }

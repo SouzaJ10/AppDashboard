@@ -1,8 +1,6 @@
 import {
   Area,
   AreaChart,
-  Bar,
-  BarChart,
   CartesianGrid,
   Legend,
   ResponsiveContainer,
@@ -24,13 +22,23 @@ export function DashboardCharts({
   fluxo,
 }: Props) {
   return (
-    <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-      {/* FATURAMENTO E LUCRO */}
-
-      <Section title="Faturamento × lucro bruto por mês">
-        <div className="h-72">
+    <div className="space-y-6">
+      {/* DESEMPENHO COMERCIAL */}
+      <Section
+        title="Desempenho comercial"
+        description="Evolução do faturamento e do lucro bruto ao longo dos meses"
+      >
+        <div className="h-80">
           <ResponsiveContainer>
-            <AreaChart data={monthly}>
+            <AreaChart
+              data={monthly}
+              margin={{
+                top: 10,
+                right: 20,
+                left: 0,
+                bottom: 0,
+              }}
+            >
               <defs>
                 <linearGradient
                   id="gFat"
@@ -42,7 +50,7 @@ export function DashboardCharts({
                   <stop
                     offset="0%"
                     stopColor="var(--color-chart-1)"
-                    stopOpacity={0.4}
+                    stopOpacity={0.28}
                   />
 
                   <stop
@@ -62,7 +70,7 @@ export function DashboardCharts({
                   <stop
                     offset="0%"
                     stopColor="var(--color-chart-2)"
-                    stopOpacity={0.4}
+                    stopOpacity={0.22}
                   />
 
                   <stop
@@ -76,6 +84,7 @@ export function DashboardCharts({
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="var(--color-border)"
+                vertical={false}
               />
 
               <XAxis
@@ -86,20 +95,24 @@ export function DashboardCharts({
               />
 
               <YAxis
-                tickFormatter={(v) =>
-                  `R$${Math.round(v / 1000)}k`
-                }
+                tickLine={false}
+                axisLine={false}
                 fontSize={11}
+                tickFormatter={(v) =>
+                  v >= 1000
+                    ? `R$${Math.round(v / 1000)}k`
+                    : `R$${Math.round(v)}`
+                }
               />
 
               <Tooltip
-                formatter={(v: number) =>
-                  brl(v)
-                }
+                formatter={(v: number) => brl(v)}
                 contentStyle={{
-                  borderRadius: 8,
+                  borderRadius: 12,
                   border:
                     "1px solid var(--color-border)",
+                  background:
+                    "var(--color-background)",
                 }}
               />
 
@@ -111,7 +124,10 @@ export function DashboardCharts({
                 name="Faturamento"
                 stroke="var(--color-chart-1)"
                 fill="url(#gFat)"
-                strokeWidth={2}
+                strokeWidth={2.5}
+                activeDot={{
+                  r: 5,
+                }}
               />
 
               <Area
@@ -120,79 +136,90 @@ export function DashboardCharts({
                 name="Lucro bruto"
                 stroke="var(--color-chart-2)"
                 fill="url(#gLuc)"
-                strokeWidth={2}
+                strokeWidth={2.5}
+                activeDot={{
+                  r: 5,
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>
         </div>
       </Section>
 
-      {/* RECEITA E CUSTO DAS VENDAS */}
-
-      <Section title="Receita × custo das vendas por mês">
-        <div className="h-72">
-          <ResponsiveContainer>
-            <BarChart data={monthly}>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--color-border)"
-              />
-
-              <XAxis
-                dataKey="mes"
-                tickLine={false}
-                axisLine={false}
-                fontSize={11}
-              />
-
-              <YAxis
-                tickFormatter={(v) =>
-                  `R$${Math.round(v / 1000)}k`
-                }
-                fontSize={11}
-              />
-
-              <Tooltip
-                formatter={(v: number) =>
-                  brl(v)
-                }
-                contentStyle={{
-                  borderRadius: 8,
-                  border:
-                    "1px solid var(--color-border)",
-                }}
-              />
-
-              <Legend />
-
-              <Bar
-                dataKey="faturamento"
-                name="Receita"
-                fill="var(--color-chart-1)"
-                radius={[6, 6, 0, 0]}
-              />
-
-              <Bar
-                dataKey="custo"
-                name="Custo das vendas"
-                fill="var(--color-chart-5)"
-                radius={[6, 6, 0, 0]}
-              />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
-      </Section>
-
-      {/* FLUXO DE CAIXA REAL */}
-
+      {/* FLUXO DE CAIXA */}
       <Section
         title="Fluxo de caixa"
-        description="Entradas, saídas e saldo acumulado"
-        className="xl:col-span-2"
+        description="Entradas, saídas e evolução do saldo acumulado"
       >
-        <div className="h-72">
+        <div className="mb-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="rounded-xl border bg-muted/30 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Entradas no período
+            </p>
+
+            <p className="mt-1 text-lg font-semibold">
+              {brl(
+                fluxo.reduce(
+                  (total, item) =>
+                    total +
+                    Number(
+                      item.entradas ?? 0
+                    ),
+                  0
+                )
+              )}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-muted/30 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Saídas no período
+            </p>
+
+            <p className="mt-1 text-lg font-semibold">
+              {brl(
+                fluxo.reduce(
+                  (total, item) =>
+                    total +
+                    Number(
+                      item.saidas ?? 0
+                    ),
+                  0
+                )
+              )}
+            </p>
+          </div>
+
+          <div className="rounded-xl border bg-muted/30 px-4 py-3">
+            <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
+              Saldo acumulado
+            </p>
+
+            <p className="mt-1 text-lg font-semibold">
+              {brl(
+                fluxo.length > 0
+                  ? Number(
+                    fluxo[
+                      fluxo.length - 1
+                    ].saldo ?? 0
+                  )
+                  : 0
+              )}
+            </p>
+          </div>
+        </div>
+
+        <div className="h-96">
           <ResponsiveContainer>
-            <AreaChart data={fluxo}>
+            <AreaChart
+              data={fluxo}
+              margin={{
+                top: 10,
+                right: 20,
+                left: 0,
+                bottom: 0,
+              }}
+            >
               <defs>
                 <linearGradient
                   id="gSaldo"
@@ -204,7 +231,7 @@ export function DashboardCharts({
                   <stop
                     offset="0%"
                     stopColor="var(--color-chart-3)"
-                    stopOpacity={0.45}
+                    stopOpacity={0.3}
                   />
 
                   <stop
@@ -218,6 +245,7 @@ export function DashboardCharts({
               <CartesianGrid
                 strokeDasharray="3 3"
                 stroke="var(--color-border)"
+                vertical={false}
               />
 
               <XAxis
@@ -228,20 +256,24 @@ export function DashboardCharts({
               />
 
               <YAxis
-                tickFormatter={(v) =>
-                  `R$${Math.round(v)}`
-                }
+                tickLine={false}
+                axisLine={false}
                 fontSize={11}
+                tickFormatter={(v) =>
+                  v >= 1000
+                    ? `R$${Math.round(v / 1000)}k`
+                    : `R$${Math.round(v)}`
+                }
               />
 
               <Tooltip
-                formatter={(v: number) =>
-                  brl(v)
-                }
+                formatter={(v: number) => brl(v)}
                 contentStyle={{
-                  borderRadius: 8,
+                  borderRadius: 12,
                   border:
                     "1px solid var(--color-border)",
+                  background:
+                    "var(--color-background)",
                 }}
               />
 
@@ -254,6 +286,9 @@ export function DashboardCharts({
                 stroke="var(--color-chart-2)"
                 fill="transparent"
                 strokeWidth={2}
+                activeDot={{
+                  r: 4,
+                }}
               />
 
               <Area
@@ -263,6 +298,9 @@ export function DashboardCharts({
                 stroke="var(--color-chart-5)"
                 fill="transparent"
                 strokeWidth={2}
+                activeDot={{
+                  r: 4,
+                }}
               />
 
               <Area
@@ -271,7 +309,10 @@ export function DashboardCharts({
                 name="Saldo acumulado"
                 stroke="var(--color-chart-3)"
                 fill="url(#gSaldo)"
-                strokeWidth={2.5}
+                strokeWidth={3}
+                activeDot={{
+                  r: 5,
+                }}
               />
             </AreaChart>
           </ResponsiveContainer>

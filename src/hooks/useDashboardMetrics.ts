@@ -74,9 +74,23 @@ export function useDashboardMetrics({
                 ? faturamento / vendas.length
                 : 0;
 
+        const vendasComCusto = vendas.filter(
+            (v) => Number(v.custo ?? 0) > 0
+        );
+
+        const custoVendasComCusto = vendasComCusto.reduce(
+            (s, v) => s + Number(v.custo ?? 0),
+            0
+        );
+
+        const lucroVendasComCusto = vendasComCusto.reduce(
+            (s, v) => s + Number(v.lucro ?? 0),
+            0
+        );
+
         const roi =
-            custoVendas > 0
-                ? lucro / custoVendas
+            custoVendasComCusto > 0
+                ? lucroVendasComCusto / custoVendasComCusto
                 : 0;
 
         // ========================================

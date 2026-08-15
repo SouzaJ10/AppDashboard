@@ -54,56 +54,183 @@ function FluxoCaixaPage() {
     },
   });
 
+  const movimentacoesQ = useQuery({
+    queryKey: ["movimentacoes"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("movimentacoes")
+        .select("*")
+        .order("data");
+
+      if (error) throw error;
+
+      return data ?? [];
+    },
+  });
+
   const vendas = vendasQ.data ?? [];
   const despesas = despesasQ.data ?? [];
+  const movimentacoes = movimentacoesQ.data ?? [];
 
   const k = useMemo(() => {
-    const receitas = vendas.reduce((s, v) => s + Number(v.preco_venda ?? 0), 0);
-    const custoVendas = vendas.reduce((s, v) => s + Number(v.custo ?? 0), 0);
-    const desp = despesas.reduce((s, d) => s + Number(d.valor ?? 0), 0);
-    const despPagas = despesas.filter((d) => d.status === "pago").reduce((s, d) => s + Number(d.valor), 0);
-    const lucroLiquido = receitas - custoVendas - desp;
-    const margem = receitas ? lucroLiquido / receitas : 0;
-    const saldo = receitas - despPagas; // saldo de caixa (apenas pagas)
-    const ticket = vendas.length ? receitas / vendas.length : 0;
+    const receitas = vendas.reduce(
+      (s, v) => s + Number(v.preco_venda ?? 0),
+      0
+    );
+
+    const custoVendas = vendas.reduce(
+      (s, v) => s + Number(v.custo ?? 0),
+      0
+    );
+
+    const despesasVendas = vendas.reduce(
+      (s, v) => s + Number(v.despesas ?? 0),
+      0
+    );
+
+    const desp = despesas.reduce(
+      (s, d) => s + Number(d.valor ?? 0),
+      0
+    );
+
+    const despPagas = despesas
+      .filter((d) => d.status === "pago")
+      .reduce((s, d) => s + Number(d.valor ?? 0), 0);
+
+    const entradasCaixa = movimentacoes.reduce(
+      (s, m) => s + Number(m.entrada ?? 0),
+      0
+    );
+
+    const saidasCaixa = movimentacoes.reduce(
+      (s, m) => s + Number(m.saida ?? 0),
+      0
+    );
+
+    const saldo = entradasCaixa - saidasCaixa;
+
+    const lucroLiquido =
+      receitas -
+      custoVendas -
+      despesasVendas -
+      desp;
+
+    const margem = receitas
+      ? lucroLiquido / receitas
+      : 0;
+
+    const ticket = vendas.length
+      ? receitas / vendas.length
+      : 0;
+
     const now = new Date();
     const ym = now.toISOString().slice(0, 7);
-    const recMes = vendas.filter((v) => (v.data ?? "").startsWith(ym)).reduce((s, v) => s + Number(v.preco_venda ?? 0), 0);
-    const despMes = despesas.filter((d) => (d.data ?? "").startsWith(ym)).reduce((s, d) => s + Number(d.valor), 0);
-    const custoMes = vendas.filter((v) => (v.data ?? "").startsWith(ym)).reduce((s, v) => s + Number(v.custo ?? 0), 0);
-    const resultadoMes = recMes - custoMes - despMes;
-    return { receitas, custoVendas, desp, despPagas, lucroLiquido, margem, saldo, ticket, resultadoMes };
-  }, [vendas, despesas]);
 
-  // Série Entradas x Saídas por bucket
+    const vendasMes = vendas.filter(
+      (v) => (v.data ?? "").startsWith(ym)
+    );
+
+    const recMes = vendasMes.reduce(
+      (s, v) => s + Number(v.preco_venda ?? 0),
+      0
+    );
+
+    const custoMes = vendasMes.reduce(
+      (s, v) => s + Number(v.custo ?? 0),
+      0
+    );
+
+    const despesasVendasMes = vendasMes.reduce(
+      (s, v) => s + Number(v.despesas ?? 0),
+      0
+    );
+
+    const despMes = despesas
+      .filter((d) => (d.data ?? "").startsWith(ym))
+      .reduce((s, d) => s + Number(d.valor ?? 0), 0);
+
+    const resultadoMes =
+      recMes -
+      custoMes -
+      despesasVendasMes -
+      despMes;
+
+    return {
+      receitas,
+      custoVendas,
+      desp,
+      despPagas,
+      lucroLiquido,
+      margem,
+      saldo,
+      ticket,
+      resultadoMes,
+      entradasCaixa,
+      saidasCaixa,
+    };
+  }, [vendas, despesas, movimentacoes]);
+
+  // Série financeira real por período.
+  // Entradas e saídas vêm exclusivamente de movimentacoes.
   const series = useMemo(() => {
-    const map = new Map<string, { label: string; raw: string; entradas: number; saidas: number; saldo: number; resultado: number; custo: number }>();
+    const map = new Map<
+      string,
+      {
+        label: string;
+        raw: string;
+        entradas: number;
+        saidas: number;
+        saldo: number;
+        resultado: number;
+      }
+    >();
+
     const touch = (raw: string) => {
       const key = bucket(raw, periodo);
+
       let cur = map.get(key);
-      if (!cur) { cur = { label: key, raw, entradas: 0, saidas: 0, saldo: 0, resultado: 0, custo: 0 }; map.set(key, cur); }
+
+      if (!cur) {
+        cur = {
+          label: key,
+          raw,
+          entradas: 0,
+          saidas: 0,
+          saldo: 0,
+          resultado: 0,
+        };
+
+        map.set(key, cur);
+      }
+
       return cur;
     };
-    for (const v of vendas) {
-      if (!v.data) continue;
-      const cur = touch(v.data);
-      cur.entradas += Number(v.preco_venda ?? 0);
-      cur.custo += Number(v.custo ?? 0);
+
+    for (const m of movimentacoes) {
+      if (!m.data) continue;
+
+      const cur = touch(m.data);
+
+      cur.entradas += Number(m.entrada ?? 0);
+      cur.saidas += Number(m.saida ?? 0);
     }
-    for (const d of despesas) {
-      if (!d.data) continue;
-      const cur = touch(d.data);
-      cur.saidas += Number(d.valor ?? 0);
+
+    const arr = Array.from(map.values()).sort(
+      (a, b) => a.raw.localeCompare(b.raw)
+    );
+
+    let saldoAcumulado = 0;
+
+    for (const item of arr) {
+      item.resultado = item.entradas - item.saidas;
+
+      saldoAcumulado += item.resultado;
+
+      item.saldo = saldoAcumulado;
     }
-    const arr = Array.from(map.values()).sort((a, b) => a.raw.localeCompare(b.raw));
-    let acc = 0;
-    for (const v of arr) {
-      v.resultado = v.entradas - v.custo - v.saidas;
-      acc += v.entradas - v.saidas;
-      v.saldo = acc;
-    }
+
     return arr;
-  }, [vendas, despesas, periodo]);
+  }, [movimentacoes, periodo]);
 
   const despesasPorCategoria = useMemo(() => {
     const m = new Map<string, number>();
@@ -114,18 +241,125 @@ function FluxoCaixaPage() {
     return Array.from(m, ([categoria, valor]) => ({ categoria, valor })).sort((a, b) => b.valor - a.valor);
   }, [despesas]);
 
-  const receitasVsCustos = useMemo(
-    () => series.map((s) => ({ label: s.label, Receitas: s.entradas, Custos: s.custo, Despesas: s.saidas })),
-    [series],
-  );
+  const receitasVsCustos = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        label: string;
+        raw: string;
+        Receitas: number;
+        Custos: number;
+        Despesas: number;
+      }
+    >();
+
+    const touch = (raw: string) => {
+      const key = bucket(raw, periodo);
+
+      let cur = map.get(key);
+
+      if (!cur) {
+        cur = {
+          label: key,
+          raw,
+          Receitas: 0,
+          Custos: 0,
+          Despesas: 0,
+        };
+
+        map.set(key, cur);
+      }
+
+      return cur;
+    };
+
+    // Resultado comercial das vendas
+    for (const v of vendas) {
+      if (!v.data) continue;
+
+      const cur = touch(v.data);
+
+      cur.Receitas += Number(v.preco_venda ?? 0);
+      cur.Custos += Number(v.custo ?? 0);
+
+      // Frete/despesas diretamente vinculadas à venda
+      cur.Despesas += Number(v.despesas ?? 0);
+    }
+
+    // Despesas operacionais cadastradas
+    for (const d of despesas) {
+      if (!d.data) continue;
+
+      const cur = touch(d.data);
+
+      cur.Despesas += Number(d.valor ?? 0);
+    }
+
+    return Array.from(map.values()).sort(
+      (a, b) => a.raw.localeCompare(b.raw)
+    );
+  }, [vendas, despesas, periodo]);
 
   const onExport = () => {
-    exportToXlsx(`fluxo_caixa_${new Date().toISOString().slice(0, 10)}`, {
-      "Fluxo por periodo": series.map((s) => ({ Periodo: s.label, Entradas: s.entradas, Saidas: s.saidas, "Custo das vendas": s.custo, "Saldo acumulado": s.saldo, "Resultado operacional": s.resultado })),
-      "Despesas por categoria": despesasPorCategoria.map((c) => ({ Categoria: c.categoria, Valor: c.valor })),
-      Receitas: vendas.map((v) => ({ Data: v.data, Codigo: v.codigo, Descricao: v.descricao, Quantidade: v.quantidade, Valor: v.preco_venda, Custo: v.custo, Lucro: v.lucro })),
-      Despesas: despesas.map((d) => ({ Data: d.data, Descricao: d.descricao, Categoria: d.categoria, Valor: d.valor, Status: d.status, Pagamento: d.forma_pagamento })),
-    });
+    exportToXlsx(
+      `fluxo_caixa_${new Date().toISOString().slice(0, 10)}`,
+      {
+        "Fluxo de caixa": series.map((s) => ({
+          Periodo: s.label,
+          Entradas: s.entradas,
+          Saidas: s.saidas,
+          Resultado: s.resultado,
+          "Saldo acumulado": s.saldo,
+        })),
+
+        "Resultado economico": receitasVsCustos.map((s) => ({
+          Periodo: s.label,
+          Receitas: s.Receitas,
+          Custos: s.Custos,
+          Despesas: s.Despesas,
+          Resultado:
+            s.Receitas -
+            s.Custos -
+            s.Despesas,
+        })),
+
+        "Despesas por categoria": despesasPorCategoria.map((c) => ({
+          Categoria: c.categoria,
+          Valor: c.valor,
+        })),
+
+        Vendas: vendas.map((v) => ({
+          Data: v.data,
+          Codigo: v.codigo,
+          Descricao: v.descricao,
+          Quantidade: v.quantidade,
+          Valor: v.preco_venda,
+          Custo: v.custo,
+          Despesas: v.despesas,
+          Lucro: v.lucro,
+          Margem: v.margem,
+        })),
+
+        Despesas: despesas.map((d) => ({
+          Data: d.data,
+          Descricao: d.descricao,
+          Categoria: d.categoria,
+          Valor: d.valor,
+          Status: d.status,
+          Pagamento: d.forma_pagamento,
+        })),
+
+        Movimentacoes: movimentacoes.map((m) => ({
+          Data: m.data,
+          Tipo: m.tipo,
+          Categoria: m.categoria,
+          Descricao: m.descricao,
+          Entrada: m.entrada,
+          Saida: m.saida,
+          Referencia: m.referencia_id,
+        })),
+      }
+    );
   };
 
   return (
@@ -136,8 +370,7 @@ function FluxoCaixaPage() {
         <KpiCard label="Receita total" value={brl(k.receitas)} icon={TrendingUp} tone="success" />
         <KpiCard label="Despesas totais" value={brl(k.desp)} icon={TrendingDown} tone="destructive" />
         <KpiCard label="Lucro líquido" value={brl(k.lucroLiquido)} icon={DollarSign} tone={k.lucroLiquido >= 0 ? "success" : "destructive"} hint={`Margem ${pct(k.margem)}`} />
-        <KpiCard label="Saldo atual" value={brl(k.saldo)} icon={Wallet} tone={k.saldo >= 0 ? "success" : "destructive"} hint="Receitas − despesas pagas" />
-        <KpiCard label="Ticket médio" value={brl(k.ticket)} icon={Receipt} tone="default" />
+        <KpiCard label="Saldo atual" value={brl(k.saldo)} icon={Wallet} tone={k.saldo >= 0 ? "success" : "destructive"} hint="Entradas − saídas realizadas" />        <KpiCard label="Ticket médio" value={brl(k.ticket)} icon={Receipt} tone="default" />
         <KpiCard label="Resultado do mês" value={brl(k.resultadoMes)} icon={Percent} tone={k.resultadoMes >= 0 ? "success" : "destructive"} />
         <KpiCard label="Custo das vendas" value={brl(k.custoVendas)} icon={TrendingDown} tone="default" />
         <KpiCard label="Despesas pagas" value={brl(k.despPagas)} icon={Wallet} tone="default" />

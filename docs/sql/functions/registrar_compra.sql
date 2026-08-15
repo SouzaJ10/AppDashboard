@@ -21,6 +21,7 @@ DECLARE
     v_data_pagamento date;
 BEGIN
 
+    -- Segurança: somente administradores
     IF NOT public.has_role(auth.uid(), 'admin') THEN
         RAISE EXCEPTION 'Acesso negado.';
     END IF;
@@ -102,11 +103,17 @@ BEGIN
     RETURNING id
     INTO v_compra_id;
 
+    -- Atualiza estoque e mantém o custo do produto
+    -- sincronizado com o último custo de compra registrado.
     UPDATE public.produtos
-    SET estoque_atual = COALESCE(estoque_atual, 0) + p_quantidade
+    SET
+        estoque_atual = COALESCE(estoque_atual, 0) + p_quantidade,
+        custo_compra = p_custo_unitario
     WHERE id = v_produto.id;
 
+    -- Compra à vista impacta o caixa imediatamente.
     IF p_forma_pagamento = 'a_vista' THEN
+
         INSERT INTO public.movimentacoes (
             data,
             entrada,
@@ -134,6 +141,7 @@ BEGIN
             'Compras',
             v_compra_id
         );
+
     END IF;
 
     RETURN v_compra_id;
@@ -142,6 +150,7 @@ END;
 
 $function$;
 
+-- Segurança de execução da RPC
 REVOKE EXECUTE ON FUNCTION public.registrar_compra(
     uuid,
     numeric,
@@ -150,8 +159,7 @@ REVOKE EXECUTE ON FUNCTION public.registrar_compra(
     date,
     text,
     date
-)
-FROM PUBLIC, anon;
+) FROM PUBLIC, anon;
 
 GRANT EXECUTE ON FUNCTION public.registrar_compra(
     uuid,
@@ -161,5 +169,4 @@ GRANT EXECUTE ON FUNCTION public.registrar_compra(
     date,
     text,
     date
-)
-TO authenticated;
+) TO authenticated;

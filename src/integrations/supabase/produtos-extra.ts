@@ -8,7 +8,7 @@
 
 export type ProdutoFull = {
   id: string;
-  codigo: number;
+  codigo: string;
   descricao: string;
   estoque_atual: number;
   estoque_minimo: number;

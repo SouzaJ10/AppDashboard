@@ -11,14 +11,10 @@ import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 import { brl } from "@/lib/format";
 import { useRealtime } from "@/hooks/useRealtime";
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend,
-} from "recharts";
-import {
-  ArrowUpRight, ArrowDownRight, Minus, CalendarDays, TrendingUp,
-  Activity, Sparkles,
-} from "lucide-react";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, } from "recharts";
+import { ArrowUpRight, ArrowDownRight, Minus, CalendarDays, TrendingUp, Activity, Sparkles, } from "lucide-react";
+import { queryKeys } from "@/constants/queryKeys";
+
 export const Route = createFileRoute("/_authenticated/faturamento")({
   component: FaturamentoPage,
 });
@@ -94,7 +90,7 @@ function DeltaKpi({
   const color =
     dir === "up" ? "text-success bg-success/10 border-success/20"
       : dir === "down" ? "text-destructive bg-destructive/10 border-destructive/20"
-      : "text-muted-foreground bg-muted border-border";
+        : "text-muted-foreground bg-muted border-border";
   const pctText = previous === 0
     ? (value === 0 ? "—" : "novo")
     : `${(ratio * 100).toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`;
@@ -124,7 +120,7 @@ function FaturamentoPage() {
   const [to, setTo] = useState("");
   const [chartTab, setChartTab] = useState<"diario" | "semanal" | "mensal" | "anual">("diario");
   const { data: vendas = [], isLoading } = useQuery({
-    queryKey: ["vendas"],
+    queryKey: queryKeys.vendas.all,
     queryFn: async () =>
       (await supabase.from("vendas").select("data,preco_venda").order("data", { ascending: true })).data ?? [],
   });
@@ -190,10 +186,10 @@ function FaturamentoPage() {
   })();
 
   const kpis = {
-    hoje:   { v: sumBetween(today, today),       p: sumBetween(yesterday, yesterday) },
-    semana: { v: sumBetween(weekStart, today),   p: sumBetween(lastWeekStart, lastWeekSameOffset) },
-    mes:    { v: sumBetween(monthStart, today),  p: sumBetween(lastMonthStart, lastMonthSameOffset) },
-    ano:    { v: sumBetween(yearStart, today),   p: sumBetween(lastYearStart, lastYearSameOffset) },
+    hoje: { v: sumBetween(today, today), p: sumBetween(yesterday, yesterday) },
+    semana: { v: sumBetween(weekStart, today), p: sumBetween(lastWeekStart, lastWeekSameOffset) },
+    mes: { v: sumBetween(monthStart, today), p: sumBetween(lastMonthStart, lastMonthSameOffset) },
+    ano: { v: sumBetween(yearStart, today), p: sumBetween(lastYearStart, lastYearSameOffset) },
   };
   // ---------- séries para gráficos (respeitando o filtro) ----------
   const daily = useMemo(() => {

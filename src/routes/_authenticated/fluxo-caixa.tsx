@@ -6,16 +6,14 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section } from "@/components/dashboard/KpiCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import {
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer,
-  CartesianGrid, Legend, Line, ComposedChart,
-} from "recharts";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line, ComposedChart, } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRealtime } from "@/hooks/useRealtime";
 import { brl, dateBR, pct } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Download, TrendingUp, TrendingDown, Wallet, Percent, DollarSign, Receipt } from "lucide-react";
 import type { Despesa } from "@/integrations/supabase/despesas-extra";
+import { queryKeys } from "@/constants/queryKeys";
 
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({ component: FluxoCaixaPage });
 
@@ -35,11 +33,11 @@ function FluxoCaixaPage() {
   const [periodo, setPeriodo] = useState<Periodo>("mensal");
 
   const vendasQ = useQuery({
-    queryKey: ["vendas"],
+    queryKey: queryKeys.vendas.all,
     queryFn: async () => (await supabase.from("vendas").select("*").order("data")).data ?? [],
   });
   const despesasQ = useQuery({
-    queryKey: ["despesas"],
+    queryKey: queryKeys.despesas.all,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("despesas" as never)
@@ -55,7 +53,7 @@ function FluxoCaixaPage() {
   });
 
   const movimentacoesQ = useQuery({
-    queryKey: ["movimentacoes"],
+    queryKey: queryKeys.movimentacoes.all,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("movimentacoes")

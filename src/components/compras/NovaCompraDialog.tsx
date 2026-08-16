@@ -1,14 +1,15 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter,} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
-import { listarProdutosParaCompra, registrarCompra,} from "@/service/compras.service";
+import { listarProdutosParaCompra, registrarCompra, } from "@/service/compras.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { toast } from "sonner";
+import type { FormaPagamento } from "@/types/domain";
 
 export function NovaCompraDialog() {
     const qc = useQueryClient();
@@ -23,7 +24,7 @@ export function NovaCompraDialog() {
     const [dataVencimento, setDataVencimento] = useState("");
 
     const [formaPagamento, setFormaPagamento] =
-        useState<"a_vista" | "a_prazo">("a_vista");
+        useState<FormaPagamento>("a_vista");
 
 
     const { data: produtos = [] } = useQuery({
@@ -121,11 +122,28 @@ export function NovaCompraDialog() {
         } catch (e) {
             console.error("Erro ao registrar compra:", e);
 
-            toast.error("A data de vencimento não pode ser anterior à data da compra.", {
-                description:
-                    e instanceof Error
-                        ? e.message
-                        : "Ocorreu um erro inesperado.",
+            const message =
+                e instanceof Error
+                    ? e.message
+                    : "Ocorreu um erro inesperado.";
+
+            const normalized = message.toLowerCase();
+
+            if (
+                normalized.includes("vencimento") &&
+                normalized.includes("anterior")
+            ) {
+                toast.error(
+                    "A data de vencimento não pode ser anterior à data da compra.",
+                    {
+                        description: message,
+                    }
+                );
+                return;
+            }
+
+            toast.error("Erro ao registrar compra", {
+                description: message,
             });
         } finally {
             setSaving(false);
@@ -230,9 +248,7 @@ export function NovaCompraDialog() {
                         <Select
                             value={formaPagamento}
                             onValueChange={(value) =>
-                                setFormaPagamento(
-                                    value as "a_vista" | "a_prazo"
-                                )
+                                setFormaPagamento(value as FormaPagamento)
                             }
                         >
                             <SelectTrigger>

@@ -1,16 +1,28 @@
-// Tipos para o módulo de despesas. As tabelas reais existem no banco APÓS
-// aplicar: docs/sql/2026-06-28_despesas_module.sql
+import type { StatusDespesa } from "@/types/domain";
+
+export const FORMAS_PAGAMENTO = [
+  "Dinheiro",
+  "PIX",
+  "Débito",
+  "Crédito",
+  "Boleto",
+  "Transferência",
+  "Outros",
+] as const;
+
+export type FormaPagamentoDespesa =
+  (typeof FORMAS_PAGAMENTO)[number];
 
 export type Despesa = {
   id: string;
   descricao: string;
   categoria: string | null;
   valor: number;
-  data: string; // YYYY-MM-DD
-  forma_pagamento: string | null;
+  data: string;
+  forma_pagamento: FormaPagamentoDespesa | null;
   centro_custo: string | null;
   observacoes: string | null;
-  status: "pago" | "pendente";
+  status: StatusDespesa;
   user_id: string | null;
   created_at: string;
   updated_at: string;
@@ -25,11 +37,16 @@ export type CategoriaDespesa = {
 };
 
 export const CATEGORIAS_PADRAO = [
-  "Aluguel", "Energia", "Água", "Internet", "Combustível", "Impostos",
-  "Folha de pagamento", "Marketing", "Fornecedores", "Frete",
-  "Taxas bancárias", "Outros",
-] as const;
-
-export const FORMAS_PAGAMENTO = [
-  "Dinheiro", "PIX", "Débito", "Crédito", "Boleto", "Transferência", "Outros",
+  "Aluguel",
+  "Energia",
+  "Água",
+  "Internet",
+  "Combustível",
+  "Impostos",
+  "Folha de pagamento",
+  "Marketing",
+  "Fornecedores",
+  "Frete",
+  "Taxas bancárias",
+  "Outros",
 ] as const;

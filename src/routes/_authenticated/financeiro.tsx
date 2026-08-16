@@ -10,6 +10,7 @@ import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianG
 import { TrendingDown, TrendingUp, Wallet, } from "lucide-react";
 import { brl, dateBR } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
+import { queryKeys } from "@/constants/queryKeys";
 
 type Periodo = "diario" | "semanal" | "mensal" | "anual";
 
@@ -53,7 +54,7 @@ function FinanceiroPage() {
 
   // MOVIMENTAÇÕES FINANCEIRAS
   const { data: mov = [] } = useQuery({
-    queryKey: ["mov-fin"],
+    queryKey: queryKeys.financeiro.all,
 
     queryFn: async () => {
       const { data, error } = await supabase

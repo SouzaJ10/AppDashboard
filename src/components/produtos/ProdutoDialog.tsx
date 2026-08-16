@@ -12,6 +12,7 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/
 import { toast } from "sonner";
 import { Plus, Pencil, Loader2 } from "lucide-react";
 import { salvarProduto } from "@/service/produto.service";
+import { queryKeys } from "@/constants/queryKeys";
 
 type Props = {
   produto?: ProdutoFull;
@@ -108,7 +109,7 @@ export function ProdutoDialog({ produto, trigger }: Props) {
       );
 
       await qc.invalidateQueries({
-        queryKey: ["produtos"],
+        queryKey: queryKeys.produtos.all,
       });
 
       setOpen(false);

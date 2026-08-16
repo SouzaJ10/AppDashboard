@@ -9,7 +9,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Loader2, Pencil, Plus } from "lucide-react";
-import { CATEGORIAS_PADRAO, FORMAS_PAGAMENTO, type CategoriaDespesa, type Despesa, } from "@/integrations/supabase/despesas-extra";
+import { CATEGORIAS_PADRAO, FORMAS_PAGAMENTO, type CategoriaDespesa, type Despesa, type FormaPagamentoDespesa, } from "@/integrations/supabase/despesas-extra";
+import type { StatusDespesa } from "@/types/domain";
+import { queryKeys } from "@/constants/queryKeys";
 
 type Props = {
   despesa?: Despesa;
@@ -32,15 +34,15 @@ export function DespesaDialog({
 
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("categorias_despesa" as never)
+        .from("categorias_despesa")
         .select("*")
         .order("nome");
 
       if (error) {
-        return [] as CategoriaDespesa[];
+        throw error;
       }
 
-      return (data ?? []) as unknown as CategoriaDespesa[];
+      return data ?? [];
     },
   });
 
@@ -66,10 +68,10 @@ export function DespesaDialog({
     categoria: "Outros",
     valor: "0",
     data: today,
-    forma_pagamento: "PIX",
+    forma_pagamento: "PIX" as FormaPagamentoDespesa,
     centro_custo: "",
     observacoes: "",
-    status: "pago" as "pago" | "pendente",
+    status: "pago" as StatusDespesa,
     novaCategoria: "",
   });
 
@@ -94,8 +96,7 @@ export function DespesaDialog({
         observacoes:
           despesa.observacoes ?? "",
         status:
-          (despesa.status ??
-            "pago") as "pago" | "pendente",
+          despesa.status ?? "pago",
         novaCategoria: "",
       });
     } else {
@@ -179,17 +180,38 @@ export function DespesaDialog({
         form.novaCategoria.trim();
 
       try {
-        await supabase
-          .from(
-            "categorias_despesa" as never
-          )
+        const { error } = await supabase
+          .from("categorias_despesa")
           .insert({
             nome: categoria,
-          } as never);
-      } catch {
-        // Categoria já pode existir ou
-        // o usuário pode não ter permissão.
-        // Isso não bloqueia o salvamento.
+          });
+
+        if (error) {
+          const message = error.message.toLowerCase();
+
+          const categoriaDuplicada =
+            message.includes("duplicate") ||
+            message.includes("unique");
+
+          if (!categoriaDuplicada) {
+            throw error;
+          }
+        }
+      } catch (e) {
+        console.error(
+          "Erro ao criar categoria de despesa:",
+          e
+        );
+
+        return toast.error(
+          "Não foi possível criar a nova categoria",
+          {
+            description:
+              e instanceof Error
+                ? e.message
+                : String(e),
+          }
+        );
       }
     }
 
@@ -263,15 +285,15 @@ export function DespesaDialog({
 
       await Promise.all([
         qc.invalidateQueries({
-          queryKey: ["despesas"],
+          queryKey: queryKeys.despesas.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["mov-fin"],
+          queryKey: queryKeys.financeiro.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["movimentacoes"],
+          queryKey: queryKeys.movimentacoes.all,
         }),
 
         qc.invalidateQueries({
@@ -458,7 +480,7 @@ export function DespesaDialog({
               onValueChange={(v) =>
                 set(
                   "forma_pagamento",
-                  v
+                  v as FormaPagamentoDespesa
                 )
               }
             >
@@ -505,9 +527,7 @@ export function DespesaDialog({
               onValueChange={(v) =>
                 set(
                   "status",
-                  v as
-                  | "pago"
-                  | "pendente"
+                  v as StatusDespesa
                 )
               }
             >

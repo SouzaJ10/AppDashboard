@@ -1,4 +1,5 @@
 import { supabase } from "@/integrations/supabase/client";
+import type { FormaPagamento } from "@/types/domain";
 
 export async function listarCompras() {
     const { data, error } = await supabase
@@ -59,7 +60,7 @@ type RegistrarCompraInput = {
     custoUnitario: number;
     data?: string;
     fornecedor?: string;
-    formaPagamento?: "a_vista" | "a_prazo";
+    formaPagamento?: FormaPagamento;
     dataVencimento?: string;
 
 };
@@ -70,7 +71,7 @@ export async function registrarCompra(input: RegistrarCompraInput) {
         p_quantidade: input.quantidade,
         p_custo_unitario: input.custoUnitario,
         p_fornecedor: input.fornecedor ?? null,
-        p_data: input.data ?? new Date().toISOString().slice(0, 10),
+        p_data: input.data,
         p_forma_pagamento: input.formaPagamento ?? "a_vista",
         p_data_vencimento: input.dataVencimento ?? null,
     });

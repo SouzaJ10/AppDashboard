@@ -18,6 +18,7 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import type { Despesa } from "@/integrations/supabase/despesas-extra";
 import { Trash2, Download, Pencil, CheckCircle, } from "lucide-react";
 import { toast } from "sonner";
+import { queryKeys } from "@/constants/queryKeys";
 
 type AbaDespesas = "historico" | "contas";
 
@@ -42,33 +43,28 @@ function DespesasPage() {
     useState<AbaDespesas>("historico");
 
   const despesasQ = useQuery({
-    queryKey: ["despesas"],
+    queryKey: queryKeys.despesas.all,
 
     queryFn: async () => {
       const { data, error } =
         await supabase
-          .from("despesas" as never)
+          .from("despesas")
           .select("*")
           .order("data", {
             ascending: false,
           });
 
       if (error) {
-        const msg =
-          error.message.toLowerCase();
-
-        if (
-          msg.includes("does not exist") ||
-          msg.includes("schema cache")
-        ) {
-          return [];
-        }
-
         throw error;
       }
 
-      return (data ??
-        []) as unknown as Despesa[];
+      return (data ?? []).map((despesa) => ({
+        ...despesa,
+        forma_pagamento:
+          despesa.forma_pagamento as Despesa["forma_pagamento"],
+        status:
+          despesa.status as Despesa["status"],
+      }));
     },
   });
 
@@ -76,9 +72,16 @@ function DespesasPage() {
     despesasQ.data ?? [];
 
   const missingTable =
-    despesasQ.isError === false &&
-    despesas.length === 0 &&
-    despesasQ.fetchStatus === "idle";
+    despesasQ.isError &&
+    despesasQ.error instanceof Error &&
+    (
+      despesasQ.error.message
+        .toLowerCase()
+        .includes("does not exist") ||
+      despesasQ.error.message
+        .toLowerCase()
+        .includes("schema cache")
+    );
 
   const categorias = useMemo(() => {
     const set = new Set<string>();
@@ -253,23 +256,19 @@ function DespesasPage() {
 
       await Promise.all([
         qc.invalidateQueries({
-          queryKey: ["despesas"],
+          queryKey: queryKeys.despesas.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["mov-fin"],
+          queryKey: queryKeys.financeiro.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: [
-            "movimentacoes",
-          ],
+          queryKey: queryKeys.movimentacoes.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: [
-            "dashboard",
-          ],
+          queryKey: queryKeys.dashboard.all,
         }),
       ]);
     } catch (e) {
@@ -318,19 +317,19 @@ function DespesasPage() {
 
       await Promise.all([
         qc.invalidateQueries({
-          queryKey: ["despesas"],
+          queryKey: queryKeys.despesas.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["mov-fin"],
+          queryKey: queryKeys.financeiro.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["movimentacoes"],
+          queryKey: queryKeys.movimentacoes.all,
         }),
 
         qc.invalidateQueries({
-          queryKey: ["dashboard"],
+          queryKey: queryKeys.dashboard.all,
         }),
       ]);
     } catch (e) {

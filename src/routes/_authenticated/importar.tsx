@@ -24,29 +24,41 @@ import {
 async function carregarProdutos() {
   const { data, error } = await supabase
     .from("produtos")
-    .select("id,codigo,descricao");
+    .select("id,codigo,descricao,custo_compra");
 
   if (error) throw error;
 
   const codeToId = new Map<string, string>();
   const nameToId = new Map<string, string>();
   const nameToCode = new Map<string, string>();
+  const idToCusto = new Map<string, number>();
 
   for (const p of data ?? []) {
     const codigo = String(p.codigo ?? "").trim();
-    const nome = String(p.descricao ?? "").trim().toLowerCase();
+    const nome = String(p.descricao ?? "")
+      .trim()
+      .toLowerCase();
 
-    if (codigo) codeToId.set(codigo, p.id);
+    if (codigo) {
+      codeToId.set(codigo, p.id);
+    }
+
     if (nome) {
       nameToId.set(nome, p.id);
       nameToCode.set(nome, codigo);
     }
+
+    idToCusto.set(
+      p.id,
+      Number(p.custo_compra ?? 0)
+    );
   }
 
   return {
     codeToId,
     nameToId,
     nameToCode,
+    idToCusto,
   };
 }
 
@@ -186,6 +198,7 @@ function ImportarPage() {
       let codeToId = new Map<string, string>();
       let nameToId = new Map<string, string>();
       let nameToCode = new Map<string, string>();
+      let idToCusto = new Map<string, number>();
       const totalSheets = sortedSheets.length || 1;
 
       for (let s = 0; s < sortedSheets.length; s++) {
@@ -229,7 +242,7 @@ function ImportarPage() {
             const cu = num(pick(r, "custo_unitario"));
             return {
               produto_id: cod ? codeToId.get(cod) ?? null : null,
-              codigo: num(cod),
+              codigo: cod,
               descricao: str(pick(r, "descricao")),
               fornecedor: str(pick(r, "fornecedor")) ?? "Importação",
               quantidade: q,
@@ -249,7 +262,8 @@ function ImportarPage() {
           codeToId = produtos.codeToId;
           nameToId = produtos.nameToId;
           nameToCode = produtos.nameToCode;
-          
+          idToCusto = produtos.idToCusto;
+
           const rows = sheet.rows.map((r) => {
             const cod = pick(r, "codigo")
               ? String(pick(r, "codigo")).trim()
@@ -272,18 +286,62 @@ function ImportarPage() {
             const data = excelDateToISO(pick(r, "data"));
             if (!data) { skipped++; return null; }
             const q = num(pick(r, "quantidade"));
-            const preco = num(pick(r, "preco_venda"));
-            const custo = num(pick(r, "custo"));
-            const desp = num(pick(r, "despesas"));
-            const lucro = num(pick(r, "lucro")) || preco - custo - desp;
+
+            const valorUnitario = num(
+              pick(r, "valor_unitario")
+            );
+
+            const totalInformado = num(
+              pick(r, "preco_venda")
+            );
+
+            const precoTotal =
+              totalInformado > 0
+                ? totalInformado
+                : q * valorUnitario;
+
+            const custoInformado = num(
+              pick(r, "custo")
+            );
+
+            const custoUnitarioProduto =
+              produto.produto_id
+                ? idToCusto.get(produto.produto_id) ?? 0
+                : 0;
+
+            const custo =
+              custoInformado > 0
+                ? custoInformado
+                : custoUnitarioProduto * q;
+
+            const desp = num(
+              pick(r, "despesas")
+            );
+
+            const lucroInformado = num(
+              pick(r, "lucro")
+            );
+
+            const lucro =
+              lucroInformado !== 0
+                ? lucroInformado
+                : precoTotal - custo - desp;
             return {
               produto_id: produto.produto_id,
               codigo: produto.codigo,
-              descricao: str(pick(r, "descricao")),
+              descricao: str(
+                pick(r, "descricao")
+              ),
               quantidade: q,
-              preco_venda: preco,
-              custo, despesas: desp, lucro,
-              margem: preco ? lucro / preco : 0,
+              valor_unitario: valorUnitario,
+              preco_venda: precoTotal,
+              custo,
+              despesas: desp,
+              lucro,
+              margem:
+                precoTotal > 0
+                  ? lucro / precoTotal
+                  : 0,
               data,
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);
@@ -292,7 +350,8 @@ function ImportarPage() {
             const { error } = await supabase.from("vendas").insert(rows.slice(i, i + 500));
             if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
           }
-        } else if (kind === "movimentacoes") {
+        }
+        else if (kind === "movimentacoes") {
           const rows = sheet.rows.map((r) => {
             const data = excelDateToISO(pick(r, "data"));
             if (!data) { skipped++; return null; }
@@ -308,6 +367,13 @@ function ImportarPage() {
             if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
           }
         }
+
+        const produtos = await carregarProdutos();
+
+        codeToId = produtos.codeToId;
+        nameToId = produtos.nameToId;
+        nameToCode = produtos.nameToCode;
+        idToCusto = produtos.idToCusto;
 
         rep.push({ kind, ok, skipped, errors });
         setProgress(Math.round(((s + 1) / totalSheets) * 100));

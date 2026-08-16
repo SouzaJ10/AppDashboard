@@ -23,4 +23,14 @@ export const queryKeys = {
   despesas: {
     all: ["despesas"] as const,
   },
+
+  financeiro: {
+    all: ["mov-fin"] as const,
+  },
+
+  insights: {
+    vendas: ["vendas-ins"] as const,
+    produtos: ["produtos-ins"] as const,
+    movimentacoes: ["mov-ins"] as const,
+  },
 };

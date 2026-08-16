@@ -200,15 +200,13 @@ function ImportarPage() {
         if (kind === "estoque") {
           const rows = sheet.rows
             .map((r) => {
-              const cod = num(pick(r, "codigo"));
+              const cod = str(pick(r, "codigo"));
               const desc = str(pick(r, "descricao"));
-              if (!cod || !desc) { skipped++; return null; }
-              return {
-                codigo: cod,
-                descricao: desc,
-                estoque_atual: num(pick(r, "estoque_atual")),
-                ...(m.estoque_minimo ? { estoque_minimo: num(pick(r, "estoque_minimo")) || 3 } : {}),
-              };
+
+              if (!cod || !desc) {
+                skipped++;
+                return null;
+              }
             })
             .filter((x): x is NonNullable<typeof x> => !!x);
           console.log("Estoque válido:", rows.length);
@@ -231,8 +229,9 @@ function ImportarPage() {
             const cu = num(pick(r, "custo_unitario"));
             return {
               produto_id: cod ? codeToId.get(cod) ?? null : null,
-              codigo: cod,
+              codigo: num(cod),
               descricao: str(pick(r, "descricao")),
+              fornecedor: str(pick(r, "fornecedor")) ?? "Importação",
               quantidade: q,
               custo_unitario: cu,
               custo_total: num(pick(r, "custo_total")) || q * cu,
@@ -245,218 +244,218 @@ function ImportarPage() {
             if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
           }
         } else if (kind === "vendas") {
-          if (codeToId.size === 0) {
-            const produtos = await carregarProdutos();
-            codeToId = produtos.codeToId;
-            nameToId = produtos.nameToId;
-            nameToCode = produtos.nameToCode;;
+          const produtos = await carregarProdutos();
+
+          codeToId = produtos.codeToId;
+          nameToId = produtos.nameToId;
+          nameToCode = produtos.nameToCode;
+          
+          const rows = sheet.rows.map((r) => {
+            const cod = pick(r, "codigo")
+              ? String(pick(r, "codigo")).trim()
+              : null;
+
+            const nomeProduto = String(
+              pick(r, "descricao") ?? ""
+            )
+              .trim()
+              .toLowerCase();
+
+            const produto = localizarProduto(
+              cod,
+              nomeProduto,
+              codeToId,
+              nameToId,
+              nameToCode,
+            );
+
+            const data = excelDateToISO(pick(r, "data"));
+            if (!data) { skipped++; return null; }
+            const q = num(pick(r, "quantidade"));
+            const preco = num(pick(r, "preco_venda"));
+            const custo = num(pick(r, "custo"));
+            const desp = num(pick(r, "despesas"));
+            const lucro = num(pick(r, "lucro")) || preco - custo - desp;
+            return {
+              produto_id: produto.produto_id,
+              codigo: produto.codigo,
+              descricao: str(pick(r, "descricao")),
+              quantidade: q,
+              preco_venda: preco,
+              custo, despesas: desp, lucro,
+              margem: preco ? lucro / preco : 0,
+              data,
+            };
+          }).filter((x): x is NonNullable<typeof x> => !!x);
+          console.log("Vendas válidas:", rows.length);
+          for (let i = 0; i < rows.length; i += 500) {
+            const { error } = await supabase.from("vendas").insert(rows.slice(i, i + 500));
+            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
           }
-            const rows = sheet.rows.map((r) => {
-              const cod = pick(r, "codigo")
-                ? String(pick(r, "codigo")).trim()
-                : null;
-
-              const nomeProduto = String(
-                pick(r, "descricao") ?? ""
-              )
-                .trim()
-                .toLowerCase();
-
-              const produto = localizarProduto(
-                cod,
-                nomeProduto,
-                codeToId,
-                nameToId,
-                nameToCode,
-              );
-
-              const data = excelDateToISO(pick(r, "data"));
-              if (!data) { skipped++; return null; }
-              const q = num(pick(r, "quantidade"));
-              const preco = num(pick(r, "preco_venda"));
-              const custo = num(pick(r, "custo"));
-              const desp = num(pick(r, "despesas"));
-              const lucro = num(pick(r, "lucro")) || preco - custo - desp;
-              return {
-                produto_id: produto.produto_id,
-                codigo: produto.codigo,
-                descricao: str(pick(r, "descricao")),
-                quantidade: q,
-                preco_venda: preco,
-                custo, despesas: desp, lucro,
-                margem: preco ? lucro / preco : 0,
-                data,
-              };
-            }).filter((x): x is NonNullable<typeof x> => !!x);
-            console.log("Vendas válidas:", rows.length);
-            for (let i = 0; i < rows.length; i += 500) {
-              const { error } = await supabase.from("vendas").insert(rows.slice(i, i + 500));
-              if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
-            }
-          } else if (kind === "movimentacoes") {
-            const rows = sheet.rows.map((r) => {
-              const data = excelDateToISO(pick(r, "data"));
-              if (!data) { skipped++; return null; }
-              return {
-                data,
-                entrada: num(pick(r, "entrada")),
-                saida: num(pick(r, "saida")),
-                descricao: str(pick(r, "descricao")),
-              };
-            }).filter((x): x is NonNullable<typeof x> => !!x);
-            for (let i = 0; i < rows.length; i += 500) {
-              const { error } = await supabase.from("movimentacoes").insert(rows.slice(i, i + 500));
-              if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
-            }
+        } else if (kind === "movimentacoes") {
+          const rows = sheet.rows.map((r) => {
+            const data = excelDateToISO(pick(r, "data"));
+            if (!data) { skipped++; return null; }
+            return {
+              data,
+              entrada: num(pick(r, "entrada")),
+              saida: num(pick(r, "saida")),
+              descricao: str(pick(r, "descricao")),
+            };
+          }).filter((x): x is NonNullable<typeof x> => !!x);
+          for (let i = 0; i < rows.length; i += 500) {
+            const { error } = await supabase.from("movimentacoes").insert(rows.slice(i, i + 500));
+            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
           }
-
-          rep.push({ kind, ok, skipped, errors });
-          setProgress(Math.round(((s + 1) / totalSheets) * 100));
         }
-        setReport(rep);
-        toast.success("Importação finalizada — veja o relatório abaixo");
-      } catch (e) {
-        toast.error("Falha na importação", { description: e instanceof Error ? e.message : String(e) });
-      } finally {
-        setRunning(false); setStep("");
+
+        rep.push({ kind, ok, skipped, errors });
+        setProgress(Math.round(((s + 1) / totalSheets) * 100));
       }
-    };
-
-    if (!isAdmin) {
-      return (
-        <AppShell title="Importar Planilha">
-          <Section title="Acesso restrito">
-            <p className="text-sm text-muted-foreground">Apenas administradores podem importar dados.</p>
-          </Section>
-        </AppShell>
-      );
+      setReport(rep);
+      toast.success("Importação finalizada — veja o relatório abaixo");
+    } catch (e) {
+      toast.error("Falha na importação", { description: e instanceof Error ? e.message : String(e) });
+    } finally {
+      setRunning(false); setStep("");
     }
+  };
 
+  if (!isAdmin) {
     return (
-      <AppShell title="Importar Planilha" subtitle="Auto-detecção de colunas, importação por aba">
-        <Section title="1. Selecione o arquivo Excel">
-          <div className="grid gap-3">
-            <div>
-              <Label htmlFor="file">Arquivo .xlsx ou .xls</Label>
-              <Input id="file" type="file" accept=".xlsx,.xls"
-                onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
-              {file && (
-                <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
-                  <FileSpreadsheet className="h-4 w-4" /> {file.name} — {sheets.length} aba(s) detectada(s)
-                </div>
-              )}
-            </div>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={wipeBeforeImport} onCheckedChange={(v) => setWipeBeforeImport(Boolean(v))} />
-              Limpar TODOS os dados antes de importar (substituição total)
-            </label>
-          </div>
+      <AppShell title="Importar Planilha">
+        <Section title="Acesso restrito">
+          <p className="text-sm text-muted-foreground">Apenas administradores podem importar dados.</p>
         </Section>
-
-
-
-        {sheets.length > 0 && (
-          <Section title="2. Confirme o mapeamento de cada aba" className="mt-6">
-            <div className="space-y-4">
-              {sheets.map((s, i) => {
-                const missing = s.kind ? missingRequired(s.kind, s.mapping) : [];
-                return (
-                  <div key={s.sheetName} className="rounded-lg border p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div className="flex items-center gap-2">
-                        <Checkbox checked={s.enabled} onCheckedChange={(v) => updateSheet(i, { enabled: Boolean(v) })} />
-                        <span className="font-semibold">{s.sheetName}</span>
-                        <span className="text-xs text-muted-foreground">({s.rows.length} linhas)</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Label className="text-xs">Tipo:</Label>
-                        <Select value={s.kind ?? ""} onValueChange={(v) => {
-                          const kind = v as SheetKind;
-                          updateSheet(i, { kind, mapping: autoMap(kind, s.headers) });
-                        }}>
-                          <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Não importar" /></SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="estoque">Estoque</SelectItem>
-                            <SelectItem value="compras">Compras</SelectItem>
-                            <SelectItem value="vendas">Vendas</SelectItem>
-                            <SelectItem value="movimentacoes">Movimentações</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-
-                    {s.kind && s.enabled && (
-                      <>
-                        <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
-                          {Object.keys(FIELD_SYNONYMS[s.kind]).map((field) => {
-                            const req = REQUIRED_FIELDS[s.kind!].includes(field);
-                            const value = s.mapping[field] ?? "__none__";
-                            return (
-                              <div key={field}>
-                                <Label className="text-xs">
-                                  {field} {req && <span className="text-destructive">*</span>}
-                                </Label>
-                                <Select value={value} onValueChange={(v) => updateMapping(i, field, v === "__none__" ? null : v)}>
-                                  <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="__none__">— ignorar —</SelectItem>
-                                    {s.headers.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
-                                  </SelectContent>
-                                </Select>
-                              </div>
-                            );
-                          })}
-                        </div>
-                        {missing.length > 0 && (
-                          <div className="mt-3 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
-                            <AlertCircle className="h-4 w-4" />
-                            Colunas obrigatórias faltando: {missing.join(", ")}
-                          </div>
-                        )}
-                      </>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          </Section>
-        )}
-
-        {sheets.length > 0 && (
-          <Section className="mt-6" title="3. Importar">
-            <Button onClick={doImport} disabled={!ready || running}>
-              {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
-              Importar abas selecionadas
-            </Button>
-            {running && (
-              <div className="mt-3">
-                <Progress value={progress} />
-                <div className="mt-1 text-xs text-muted-foreground">{step}</div>
-              </div>
-            )}
-            {report && (
-              <div className="mt-4 space-y-2">
-                {report.map((r) => (
-                  <div key={r.kind} className="rounded-md border p-3 text-sm">
-                    <div className="flex items-center gap-2 font-medium">
-                      {r.errors.length === 0
-                        ? <CheckCircle2 className="h-4 w-4 text-success" />
-                        : <AlertCircle className="h-4 w-4 text-destructive" />}
-                      {r.kind}
-                      <Badge variant="secondary">{r.ok} importados</Badge>
-                      {r.skipped > 0 && <Badge variant="outline">{r.skipped} ignorados</Badge>}
-                    </div>
-                    {r.errors.length > 0 && (
-                      <ul className="mt-2 list-disc pl-5 text-xs text-destructive">
-                        {r.errors.slice(0, 5).map((e, idx) => <li key={idx}>{e}</li>)}
-                      </ul>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </Section>
-        )}
       </AppShell>
     );
   }
+
+  return (
+    <AppShell title="Importar Planilha" subtitle="Auto-detecção de colunas, importação por aba">
+      <Section title="1. Selecione o arquivo Excel">
+        <div className="grid gap-3">
+          <div>
+            <Label htmlFor="file">Arquivo .xlsx ou .xls</Label>
+            <Input id="file" type="file" accept=".xlsx,.xls"
+              onChange={(e) => onFile(e.target.files?.[0] ?? null)} />
+            {file && (
+              <div className="mt-2 flex items-center gap-2 text-sm text-muted-foreground">
+                <FileSpreadsheet className="h-4 w-4" /> {file.name} — {sheets.length} aba(s) detectada(s)
+              </div>
+            )}
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <Checkbox checked={wipeBeforeImport} onCheckedChange={(v) => setWipeBeforeImport(Boolean(v))} />
+            Limpar TODOS os dados antes de importar (substituição total)
+          </label>
+        </div>
+      </Section>
+
+
+
+      {sheets.length > 0 && (
+        <Section title="2. Confirme o mapeamento de cada aba" className="mt-6">
+          <div className="space-y-4">
+            {sheets.map((s, i) => {
+              const missing = s.kind ? missingRequired(s.kind, s.mapping) : [];
+              return (
+                <div key={s.sheetName} className="rounded-lg border p-4">
+                  <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-2">
+                      <Checkbox checked={s.enabled} onCheckedChange={(v) => updateSheet(i, { enabled: Boolean(v) })} />
+                      <span className="font-semibold">{s.sheetName}</span>
+                      <span className="text-xs text-muted-foreground">({s.rows.length} linhas)</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs">Tipo:</Label>
+                      <Select value={s.kind ?? ""} onValueChange={(v) => {
+                        const kind = v as SheetKind;
+                        updateSheet(i, { kind, mapping: autoMap(kind, s.headers) });
+                      }}>
+                        <SelectTrigger className="h-8 w-40 text-xs"><SelectValue placeholder="Não importar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="estoque">Estoque</SelectItem>
+                          <SelectItem value="compras">Compras</SelectItem>
+                          <SelectItem value="vendas">Vendas</SelectItem>
+                          <SelectItem value="movimentacoes">Movimentações</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {s.kind && s.enabled && (
+                    <>
+                      <div className="mt-3 grid grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                        {Object.keys(FIELD_SYNONYMS[s.kind]).map((field) => {
+                          const req = REQUIRED_FIELDS[s.kind!].includes(field);
+                          const value = s.mapping[field] ?? "__none__";
+                          return (
+                            <div key={field}>
+                              <Label className="text-xs">
+                                {field} {req && <span className="text-destructive">*</span>}
+                              </Label>
+                              <Select value={value} onValueChange={(v) => updateMapping(i, field, v === "__none__" ? null : v)}>
+                                <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">— ignorar —</SelectItem>
+                                  {s.headers.map((h) => <SelectItem key={h} value={h}>{h}</SelectItem>)}
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          );
+                        })}
+                      </div>
+                      {missing.length > 0 && (
+                        <div className="mt-3 flex items-center gap-2 rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+                          <AlertCircle className="h-4 w-4" />
+                          Colunas obrigatórias faltando: {missing.join(", ")}
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </Section>
+      )}
+
+      {sheets.length > 0 && (
+        <Section className="mt-6" title="3. Importar">
+          <Button onClick={doImport} disabled={!ready || running}>
+            {running ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Upload className="mr-2 h-4 w-4" />}
+            Importar abas selecionadas
+          </Button>
+          {running && (
+            <div className="mt-3">
+              <Progress value={progress} />
+              <div className="mt-1 text-xs text-muted-foreground">{step}</div>
+            </div>
+          )}
+          {report && (
+            <div className="mt-4 space-y-2">
+              {report.map((r) => (
+                <div key={r.kind} className="rounded-md border p-3 text-sm">
+                  <div className="flex items-center gap-2 font-medium">
+                    {r.errors.length === 0
+                      ? <CheckCircle2 className="h-4 w-4 text-success" />
+                      : <AlertCircle className="h-4 w-4 text-destructive" />}
+                    {r.kind}
+                    <Badge variant="secondary">{r.ok} importados</Badge>
+                    {r.skipped > 0 && <Badge variant="outline">{r.skipped} ignorados</Badge>}
+                  </div>
+                  {r.errors.length > 0 && (
+                    <ul className="mt-2 list-disc pl-5 text-xs text-destructive">
+                      {r.errors.slice(0, 5).map((e, idx) => <li key={idx}>{e}</li>)}
+                    </ul>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </Section>
+      )}
+    </AppShell>
+  );
+}

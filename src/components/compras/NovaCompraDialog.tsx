@@ -121,7 +121,7 @@ export function NovaCompraDialog() {
         } catch (e) {
             console.error("Erro ao registrar compra:", e);
 
-            toast.error("Erro ao salvar compra", {
+            toast.error("A data de vencimento não pode ser anterior à data da compra.", {
                 description:
                     e instanceof Error
                         ? e.message

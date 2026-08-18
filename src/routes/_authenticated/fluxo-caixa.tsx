@@ -34,21 +34,40 @@ function FluxoCaixaPage() {
 
   const vendasQ = useQuery({
     queryKey: queryKeys.vendas.all,
-    queryFn: async () => (await supabase.from("vendas").select("*").order("data")).data ?? [],
+
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas")
+        .select("*")
+        .order("data");
+
+      if (error) {
+        throw error;
+      }
+
+      return data ?? [];
+    },
   });
   const despesasQ = useQuery({
     queryKey: queryKeys.despesas.all,
+
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("despesas" as never)
+        .from("despesas")
         .select("*")
         .order("data");
+
       if (error) {
-        const m = error.message.toLowerCase();
-        if (m.includes("does not exist") || m.includes("schema cache")) return [];
         throw error;
       }
-      return (data ?? []) as unknown as Despesa[];
+
+      return (data ?? []).map((despesa) => ({
+        ...despesa,
+        forma_pagamento:
+          despesa.forma_pagamento as Despesa["forma_pagamento"],
+        status:
+          despesa.status as Despesa["status"],
+      }));
     },
   });
 

@@ -30,8 +30,7 @@ export function DespesaDialog({
   const [saving, setSaving] = useState(false);
 
   const catsQ = useQuery({
-    queryKey: ["categorias_despesa"],
-
+    queryKey: queryKeys.categoriasDespesa.all,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("categorias_despesa")
@@ -297,7 +296,7 @@ export function DespesaDialog({
         }),
 
         qc.invalidateQueries({
-          queryKey: ["categorias_despesa"],
+          queryKey: queryKeys.categoriasDespesa.all,
         }),
       ]);
 

@@ -121,8 +121,19 @@ function FaturamentoPage() {
   const [chartTab, setChartTab] = useState<"diario" | "semanal" | "mensal" | "anual">("diario");
   const { data: vendas = [], isLoading } = useQuery({
     queryKey: queryKeys.vendas.all,
-    queryFn: async () =>
-      (await supabase.from("vendas").select("data,preco_venda").order("data", { ascending: true })).data ?? [],
+
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas")
+        .select("data,preco_venda")
+        .order("data", { ascending: true });
+
+      if (error) {
+        throw error;
+      }
+
+      return data ?? [];
+    },
   });
   const range = useMemo(() => resolveRange(preset, from, to), [preset, from, to]);
   // Soma por dia (mapa data -> faturamento). Chave = string crua "YYYY-MM-DD"

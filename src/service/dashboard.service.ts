@@ -44,21 +44,18 @@ export async function listarProdutosDashboard() {
 
 export async function listarDespesasDashboard() {
   const { data, error } = await supabase
-    .from("despesas" as never)
+    .from("despesas")
     .select("*");
 
   if (error) {
-    const m = error.message.toLowerCase();
-
-    if (
-      m.includes("does not exist") ||
-      m.includes("schema cache")
-    ) {
-      return [];
-    }
-
     throw error;
   }
 
-  return (data ?? []) as unknown as Despesa[];
+  return (data ?? []).map((despesa) => ({
+    ...despesa,
+    forma_pagamento:
+      despesa.forma_pagamento as Despesa["forma_pagamento"],
+    status:
+      despesa.status as Despesa["status"],
+  }));
 }

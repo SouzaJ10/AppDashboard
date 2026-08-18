@@ -4,15 +4,9 @@ import { useMemo } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { brl, num, pct } from "@/lib/format";
+import { queryKeys } from "@/constants/queryKeys";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   component: PrecificacaoPage,
@@ -20,9 +14,18 @@ export const Route = createFileRoute("/_authenticated/precificacao")({
 
 function PrecificacaoPage() {
   const { data: vendas = [] } = useQuery({
-    queryKey: ["vendas-prec"],
-    queryFn: async () =>
-      (await supabase.from("vendas").select("*")).data ?? [],
+    queryKey: queryKeys.precificacao.vendas,
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("vendas")
+        .select("*");
+
+      if (error) {
+        throw error;
+      }
+
+      return data ?? [];
+    },
   });
 
   const linhas = useMemo(() => {

@@ -70,7 +70,7 @@ function FinanceiroPage() {
 
   // COMPRAS
   const { data: compras = [] } = useQuery({
-    queryKey: ["compras-fin"],
+    queryKey: queryKeys.financeiro.compras,
 
     queryFn: async () => {
       const { data, error } = await supabase

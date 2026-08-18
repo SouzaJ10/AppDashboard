@@ -24,13 +24,22 @@ export const queryKeys = {
     all: ["despesas"] as const,
   },
 
-  financeiro: {
-    all: ["mov-fin"] as const,
-  },
-
   insights: {
     vendas: ["vendas-ins"] as const,
     produtos: ["produtos-ins"] as const,
     movimentacoes: ["mov-ins"] as const,
   },
+
+  categoriasDespesa: {
+    all: ["categorias_despesa"] as const,
+  },
+
+  precificacao: {
+    vendas: ["vendas-prec"] as const,
+  },
+
+  financeiro: {
+  all: ["mov-fin"] as const,
+  compras: ["compras-fin"] as const,
+},
 };

@@ -1,6 +1,6 @@
 import { supabase } from "@/integrations/supabase/client";
 
-import type { ProdutoFull, ProdutoInsert, ProdutoUpdate,} from "@/integrations/supabase/produtos-extra";
+import type { ProdutoFull, ProdutoInsert, ProdutoUpdate, } from "@/integrations/supabase/produtos-extra";
 
 export async function listarProdutos() {
     const { data, error } = await supabase
@@ -48,32 +48,35 @@ export async function excluirProduto(id: string) {
 }
 
 export async function salvarProduto(
-    payload: Record<string, unknown>,
+    payload: ProdutoInsert | ProdutoUpdate,
     id?: string
 ) {
     if (id) {
         const { error } = await supabase
             .from("produtos")
-            .update(payload as never)
+            .update(payload)
             .eq("id", id);
+
         if (error) throw error;
+
         return;
     }
-    
+
     const { error } = await supabase
         .from("produtos")
-        .insert(payload as never)
+        .insert(payload as ProdutoInsert);
+
     if (error) throw error;
 }
 
 export async function listarGiroProdutos() {
-  const { data, error } = await supabase
-    .from("vendas")
-    .select("descricao, quantidade");
+    const { data, error } = await supabase
+        .from("vendas")
+        .select("descricao, quantidade");
 
-  if (error) {
-    throw error;
-  }
+    if (error) {
+        throw error;
+    }
 
-  return data ?? [];
+    return data ?? [];
 }

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger, } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +12,7 @@ import { CATEGORIAS_PADRAO, FORMAS_PAGAMENTO, type CategoriaDespesa, type Despes
 import type { StatusDespesa } from "@/types/domain";
 import { queryKeys } from "@/constants/queryKeys";
 import { todayISO } from "@/lib/format";
+import { atualizarDespesa, criarCategoriaDespesa, listarCategoriasDespesa, registrarDespesa, } from "@/service/despesas.service";
 
 type Props = {
   despesa?: Despesa;
@@ -32,18 +32,7 @@ export function DespesaDialog({
 
   const catsQ = useQuery({
     queryKey: queryKeys.categoriasDespesa.all,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("categorias_despesa")
-        .select("*")
-        .order("nome");
-
-      if (error) {
-        throw error;
-      }
-
-      return data ?? [];
-    },
+    queryFn: listarCategoriasDespesa,
   });
 
   const categorias = (() => {
@@ -178,23 +167,7 @@ export function DespesaDialog({
         form.novaCategoria.trim();
 
       try {
-        const { error } = await supabase
-          .from("categorias_despesa")
-          .insert({
-            nome: categoria,
-          });
-
-        if (error) {
-          const message = error.message.toLowerCase();
-
-          const categoriaDuplicada =
-            message.includes("duplicate") ||
-            message.includes("unique");
-
-          if (!categoriaDuplicada) {
-            throw error;
-          }
-        }
+        await criarCategoriaDespesa(categoria);
       } catch (e) {
         console.error(
           "Erro ao criar categoria de despesa:",
@@ -217,68 +190,37 @@ export function DespesaDialog({
 
     try {
       if (isEdit && despesa) {
-        const { error } =
-          await supabase.rpc(
-            "atualizar_despesa",
-            {
-              p_despesa_id: despesa.id,
-              p_descricao:
-                form.descricao.trim(),
-              p_valor: valor,
-              p_data: form.data,
-              p_categoria:
-                categoria || null,
-              p_forma_pagamento:
-                form.forma_pagamento ||
-                null,
-              p_centro_custo:
-                form.centro_custo.trim() ||
-                null,
-              p_observacoes:
-                form.observacoes.trim() ||
-                null,
-              p_status: form.status,
-            }
-          );
+        await atualizarDespesa(despesa.id, {
+          descricao: form.descricao.trim(),
+          valor,
+          data: form.data,
+          categoria: categoria || null,
+          formaPagamento:
+            form.forma_pagamento || null,
+          centroCusto:
+            form.centro_custo.trim() || null,
+          observacoes:
+            form.observacoes.trim() || null,
+          status: form.status,
+        });
 
-        if (error) {
-          throw error;
-        }
-
-        toast.success(
-          "Despesa atualizada"
-        );
+        toast.success("Despesa atualizada");
       } else {
-        const { error } =
-          await supabase.rpc(
-            "registrar_despesa",
-            {
-              p_descricao:
-                form.descricao.trim(),
-              p_valor: valor,
-              p_data: form.data,
-              p_categoria:
-                categoria || null,
-              p_forma_pagamento:
-                form.forma_pagamento ||
-                null,
-              p_centro_custo:
-                form.centro_custo.trim() ||
-                null,
-              p_observacoes:
-                form.observacoes.trim() ||
-                null,
-              p_status: form.status,
-            }
-          );
+        await registrarDespesa({
+          descricao: form.descricao.trim(),
+          valor,
+          data: form.data,
+          categoria: categoria || null,
+          formaPagamento:
+            form.forma_pagamento || null,
+          centroCusto:
+            form.centro_custo.trim() || null,
+          observacoes:
+            form.observacoes.trim() || null,
+          status: form.status,
+        });
 
-        if (error) {
-          throw error;
-        }
-
-        toast.success(
-          "Despesa registrada"
-        );
+        toast.success("Despesa registrada");
       }
 
       await Promise.all([

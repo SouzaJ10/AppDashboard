@@ -1,0 +1,154 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { Despesa, FormaPagamentoDespesa, } from "@/integrations/supabase/despesas-extra";
+import type { StatusDespesa } from "@/types/domain";
+
+export async function listarDespesas() {
+    const { data, error } = await supabase
+        .from("despesas")
+        .select("*")
+        .order("data", { ascending: false });
+
+    if (error) {
+        throw error;
+    }
+
+    return (data ?? []).map((despesa) => ({
+        ...despesa,
+        forma_pagamento:
+            despesa.forma_pagamento as Despesa["forma_pagamento"],
+        status:
+            despesa.status as Despesa["status"],
+    }));
+}
+
+export type SalvarDespesaInput = {
+    descricao: string;
+    valor: number;
+    data: string;
+    categoria: string | null;
+    formaPagamento: FormaPagamentoDespesa | null;
+    centroCusto: string | null;
+    observacoes: string | null;
+    status: StatusDespesa;
+};
+
+export async function excluirDespesa(id: string) {
+    const { error } = await supabase.rpc(
+        "excluir_despesa",
+        {
+            p_despesa_id: id,
+        }
+    );
+
+    if (error) {
+        throw error;
+    }
+}
+
+export async function pagarDespesa(
+    despesa: Despesa,
+    data: string
+) {
+    const { error } = await supabase.rpc(
+        "atualizar_despesa",
+        {
+            p_despesa_id: despesa.id,
+            p_descricao: despesa.descricao,
+            p_valor: Number(despesa.valor),
+            p_data: data,
+            p_categoria: despesa.categoria ?? null,
+            p_forma_pagamento:
+                despesa.forma_pagamento ?? null,
+            p_centro_custo:
+                despesa.centro_custo ?? null,
+            p_observacoes:
+                despesa.observacoes ?? null,
+            p_status: "pago",
+        }
+    );
+
+    if (error) {
+        throw error;
+    }
+}
+
+export async function listarCategoriasDespesa() {
+    const { data, error } = await supabase
+        .from("categorias_despesa")
+        .select("*")
+        .order("nome");
+
+    if (error) {
+        throw error;
+    }
+
+    return data ?? [];
+}
+
+export async function criarCategoriaDespesa(nome: string) {
+    const { error } = await supabase
+        .from("categorias_despesa")
+        .insert({
+            nome,
+        });
+
+    if (!error) {
+        return;
+    }
+
+    const message = error.message.toLowerCase();
+
+    const categoriaDuplicada =
+        message.includes("duplicate") ||
+        message.includes("unique");
+
+    if (!categoriaDuplicada) {
+        throw error;
+    }
+}
+
+export async function registrarDespesa(
+    input: SalvarDespesaInput
+) {
+    const { error } = await supabase.rpc(
+        "registrar_despesa",
+        {
+            p_descricao: input.descricao,
+            p_valor: input.valor,
+            p_data: input.data,
+            p_categoria: input.categoria,
+            p_forma_pagamento: input.formaPagamento,
+            p_centro_custo: input.centroCusto,
+            p_observacoes: input.observacoes,
+            p_status: input.status,
+        }
+    );
+
+    if (error) {
+        throw error;
+    }
+}
+
+export async function atualizarDespesa(
+    id: string,
+    input: SalvarDespesaInput
+) {
+    const { error } = await supabase.rpc(
+        "atualizar_despesa",
+        {
+            p_despesa_id: id,
+            p_descricao: input.descricao,
+            p_valor: input.valor,
+            p_data: input.data,
+            p_categoria: input.categoria,
+            p_forma_pagamento: input.formaPagamento,
+            p_centro_custo: input.centroCusto,
+            p_observacoes: input.observacoes,
+            p_status: input.status,
+        }
+    );
+
+    if (error) {
+        throw error;
+    }
+}

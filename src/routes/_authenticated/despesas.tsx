@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
@@ -19,6 +18,7 @@ import type { Despesa } from "@/integrations/supabase/despesas-extra";
 import { Trash2, Download, Pencil, CheckCircle, } from "lucide-react";
 import { toast } from "sonner";
 import { queryKeys } from "@/constants/queryKeys";
+import { excluirDespesa, listarDespesas, pagarDespesa, } from "@/service/despesas.service";
 
 type AbaDespesas = "historico" | "contas";
 
@@ -44,28 +44,7 @@ function DespesasPage() {
 
   const despesasQ = useQuery({
     queryKey: queryKeys.despesas.all,
-
-    queryFn: async () => {
-      const { data, error } =
-        await supabase
-          .from("despesas")
-          .select("*")
-          .order("data", {
-            ascending: false,
-          });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []).map((despesa) => ({
-        ...despesa,
-        forma_pagamento:
-          despesa.forma_pagamento as Despesa["forma_pagamento"],
-        status:
-          despesa.status as Despesa["status"],
-      }));
-    },
+    queryFn: listarDespesas,
   });
 
   const despesas =
@@ -237,17 +216,8 @@ function DespesasPage() {
     id: string
   ) => {
     try {
-      const { error } =
-        await supabase.rpc(
-          "excluir_despesa",
-          {
-            p_despesa_id: id,
-          }
-        );
 
-      if (error) {
-        throw error;
-      }
+      await excluirDespesa(id);
 
       toast.success(
         "Despesa excluída"
@@ -285,30 +255,9 @@ function DespesasPage() {
 
   const onPay = async (despesa: Despesa) => {
     try {
-      const { error } = await supabase.rpc(
-        "atualizar_despesa",
-        {
-          p_despesa_id: despesa.id,
-          p_descricao: despesa.descricao,
-          p_valor: Number(despesa.valor),
-          p_data:
-            despesa.data ??
-            todayISO(),
-          p_categoria:
-            despesa.categoria ?? null,
-          p_forma_pagamento:
-            despesa.forma_pagamento ?? null,
-          p_centro_custo:
-            despesa.centro_custo ?? null,
-          p_observacoes:
-            despesa.observacoes ?? null,
-          p_status: "pago",
-        }
+      await pagarDespesa(despesa,
+        despesa.data ?? todayISO()
       );
-
-      if (error) {
-        throw error;
-      }
 
       toast.success(
         "Despesa paga com sucesso!"

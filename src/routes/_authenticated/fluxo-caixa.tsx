@@ -12,8 +12,8 @@ import { useRealtime } from "@/hooks/useRealtime";
 import { brl, dateBR, pct } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Download, TrendingUp, TrendingDown, Wallet, Percent, DollarSign, Receipt } from "lucide-react";
-import type { Despesa } from "@/integrations/supabase/despesas-extra";
 import { queryKeys } from "@/constants/queryKeys";
+import { listarDespesas } from "@/service/despesas.service";
 
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({ component: FluxoCaixaPage });
 
@@ -23,6 +23,7 @@ const monthLabel = (d: string) => {
   const dt = new Date(d + "T00:00:00");
   return dt.toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
 };
+
 const dayLabel = (d: string) => dateBR(d);
 const yearLabel = (d: string) => String(new Date(d + "T00:00:00").getFullYear());
 const bucket = (d: string, p: Periodo) =>
@@ -48,27 +49,10 @@ function FluxoCaixaPage() {
       return data ?? [];
     },
   });
+
   const despesasQ = useQuery({
     queryKey: queryKeys.despesas.all,
-
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("despesas")
-        .select("*")
-        .order("data", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return (data ?? []).map((despesa) => ({
-        ...despesa,
-        forma_pagamento:
-          despesa.forma_pagamento as Despesa["forma_pagamento"],
-        status:
-          despesa.status as Despesa["status"],
-      }));
-    },
+    queryFn: listarDespesas,
   });
 
   const movimentacoesQ = useQuery({

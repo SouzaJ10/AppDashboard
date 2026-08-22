@@ -42,22 +42,3 @@ export async function listarProdutosDashboard() {
 
   return data ?? [];
 }
-
-export async function listarDespesasDashboard() {
-  const { data, error } = await supabase
-    .from("despesas")
-    .select("*")
-    .order("data", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []).map((despesa) => ({
-    ...despesa,
-    forma_pagamento:
-      despesa.forma_pagamento as Despesa["forma_pagamento"],
-    status:
-      despesa.status as Despesa["status"],
-  }));
-}

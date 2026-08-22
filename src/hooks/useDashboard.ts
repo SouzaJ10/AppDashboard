@@ -1,14 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
-
-import {
-  listarVendasDashboard,
-  listarComprasDashboard,
-  listarMovimentacoesDashboard,
-  listarProdutosDashboard,
-  listarDespesasDashboard,
-} from "@/service/dashboard.service";
-
+import { listarVendasDashboard, listarComprasDashboard, listarMovimentacoesDashboard, listarProdutosDashboard, } from "@/service/dashboard.service";
 import { queryKeys } from "@/constants/queryKeys";
+import { listarDespesas } from "@/service/despesas.service";
 
 export function useDashboard() {
   const vendas = useQuery({
@@ -31,9 +24,9 @@ export function useDashboard() {
     queryFn: listarProdutosDashboard,
   });
 
-  const despesas = useQuery({
+  const despesasQ = useQuery({
     queryKey: queryKeys.despesas.all,
-    queryFn: listarDespesasDashboard,
+    queryFn: listarDespesas,
   });
 
   return {
@@ -41,13 +34,13 @@ export function useDashboard() {
     compras: compras.data ?? [],
     movimentacoes: movimentacoes.data ?? [],
     produtos: produtos.data ?? [],
-    despesas: despesas.data ?? [],
+    despesas: despesasQ.data ?? [],
 
     loading:
       vendas.isLoading ||
       compras.isLoading ||
       movimentacoes.isLoading ||
       produtos.isLoading ||
-      despesas.isLoading,
+      despesasQ.isLoading,
   };
 }

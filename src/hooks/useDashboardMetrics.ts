@@ -1,13 +1,20 @@
 import { useMemo } from "react";
 import { todayISO } from "@/lib/format";
+import type { Tables } from "@/integrations/supabase/database.types";
+import type { Despesa } from "@/integrations/supabase/despesas-extra";
+import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 
 type Props = {
-    vendas: any[];
-    compras: any[];
-    produtos: any[];
-    despesas: any[];
-    movimentacoes: any[];
+    vendas: Venda[];
+    compras: Compra[];
+    produtos: ProdutoFull[];
+    despesas: Despesa[];
+    movimentacoes: Movimentacao[];
 };
+
+type Venda = Tables<"vendas">;
+type Compra = Tables<"compras">;
+type Movimentacao = Tables<"movimentacoes">;
 
 const monthLabel = (d: string | Date) => {
     const dt =

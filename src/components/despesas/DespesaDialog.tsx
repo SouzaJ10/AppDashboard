@@ -12,6 +12,7 @@ import { Loader2, Pencil, Plus } from "lucide-react";
 import { CATEGORIAS_PADRAO, FORMAS_PAGAMENTO, type CategoriaDespesa, type Despesa, type FormaPagamentoDespesa, } from "@/integrations/supabase/despesas-extra";
 import type { StatusDespesa } from "@/types/domain";
 import { queryKeys } from "@/constants/queryKeys";
+import { todayISO } from "@/lib/format";
 
 type Props = {
   despesa?: Despesa;
@@ -58,9 +59,7 @@ export function DespesaDialog({
     return Array.from(all).sort();
   })();
 
-  const today = new Date()
-    .toISOString()
-    .slice(0, 10);
+  const today = todayISO();
 
   const [form, setForm] = useState({
     descricao: "",

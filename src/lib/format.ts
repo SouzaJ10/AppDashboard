@@ -12,3 +12,10 @@ export const dateBR = (d: string | Date | null | undefined) => {
   const dt = typeof d === "string" ? new Date(d + (d.length === 10 ? "T00:00:00" : "")) : d;
   return dt.toLocaleDateString("pt-BR");
 };
+export const todayISO = () =>
+  new Intl.DateTimeFormat("sv-SE", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date());

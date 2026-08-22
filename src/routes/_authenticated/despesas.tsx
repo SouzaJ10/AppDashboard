@@ -13,7 +13,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
 import { DespesaDialog } from "@/components/despesas/DespesaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, todayISO } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import type { Despesa } from "@/integrations/supabase/despesas-extra";
 import { Trash2, Download, Pencil, CheckCircle, } from "lucide-react";
@@ -152,9 +152,8 @@ function DespesasPage() {
   );
 
   const resumo = useMemo(() => {
-    const hoje = new Date()
-      .toISOString()
-      .slice(0, 10);
+
+    const hoje = todayISO();
 
     const mesAtual =
       hoje.slice(0, 7);
@@ -294,7 +293,7 @@ function DespesasPage() {
           p_valor: Number(despesa.valor),
           p_data:
             despesa.data ??
-            new Date().toISOString().slice(0, 10),
+            todayISO(),
           p_categoria:
             despesa.categoria ?? null,
           p_forma_pagamento:

@@ -10,16 +10,13 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { toast } from "sonner";
 import { FileSpreadsheet, Upload, Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
-import {
-  type SheetKind, FIELD_SYNONYMS, REQUIRED_FIELDS,
-  detectSheetKind, autoMap, missingRequired,
-} from "@/lib/excel-mapping";
+import { type SheetKind, FIELD_SYNONYMS, REQUIRED_FIELDS, detectSheetKind, autoMap, missingRequired, } from "@/lib/excel-mapping";
+import { useQueryClient } from "@tanstack/react-query";
+import { queryKeys } from "@/constants/queryKeys";
 
 async function carregarProdutos() {
   const { data, error } = await supabase
@@ -32,6 +29,7 @@ async function carregarProdutos() {
   const nameToId = new Map<string, string>();
   const nameToCode = new Map<string, string>();
   const idToCusto = new Map<string, number>();
+  const ambiguousNames = new Set<string>();
 
   for (const p of data ?? []) {
     const codigo = String(p.codigo ?? "").trim();
@@ -44,8 +42,14 @@ async function carregarProdutos() {
     }
 
     if (nome) {
-      nameToId.set(nome, p.id);
-      nameToCode.set(nome, codigo);
+      if (nameToId.has(nome)) {
+        ambiguousNames.add(nome);
+        nameToId.delete(nome);
+        nameToCode.delete(nome);
+      } else if (!ambiguousNames.has(nome)) {
+        nameToId.set(nome, p.id);
+        nameToCode.set(nome, codigo);
+      }
     }
 
     idToCusto.set(
@@ -59,6 +63,7 @@ async function carregarProdutos() {
     nameToId,
     nameToCode,
     idToCusto,
+    ambiguousNames,
   };
 }
 
@@ -68,6 +73,7 @@ function localizarProduto(
   codeToId: Map<string, string>,
   nameToId: Map<string, string>,
   nameToCode: Map<string, string>,
+  ambiguousNames: Set<string>,
 ) {
   if (codigo) {
     const id = codeToId.get(codigo);
@@ -75,17 +81,27 @@ function localizarProduto(
       return {
         produto_id: id,
         codigo,
+        ambiguous: false,
       };
     }
   }
   const nomeNormalizado = nome
     .trim()
     .toLowerCase();
+  if (ambiguousNames.has(nomeNormalizado)) {
+    return {
+      produto_id: null,
+      codigo: codigo ?? "",
+      ambiguous: true,
+    };
+  }
+
   const id = nameToId.get(nomeNormalizado);
   if (id) {
     return {
       produto_id: id,
       codigo: nameToCode.get(nomeNormalizado) ?? codigo ?? "",
+      ambiguous: false,
     };
   }
   return {
@@ -135,6 +151,7 @@ const num = (v: unknown): number => {
 const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v).trim());
 
 function ImportarPage() {
+  const qc = useQueryClient();
   const { isAdmin } = useUserRole();
   const [file, setFile] = useState<File | null>(null);
   const [sheets, setSheets] = useState<SheetInfo[]>([]);
@@ -183,8 +200,26 @@ function ImportarPage() {
       // 1. (opcional) limpar
       if (wipeBeforeImport) {
         setStep("Limpando dados anteriores...");
-        for (const t of ["vendas", "compras", "movimentacoes", "produtos"] as const) {
-          await supabase.from(t).delete().neq("id", "00000000-0000-0000-0000-000000000000");
+
+        for (const t of [
+          "vendas",
+          "compras",
+          "movimentacoes",
+          "produtos",
+        ] as const) {
+          const { error } = await supabase
+            .from(t)
+            .delete()
+            .neq(
+              "id",
+              "00000000-0000-0000-0000-000000000000"
+            );
+
+          if (error) {
+            throw new Error(
+              `Falha ao limpar ${t}: ${error.message}`
+            );
+          }
         }
       }
 
@@ -220,12 +255,43 @@ function ImportarPage() {
                 skipped++;
                 return null;
               }
+
+              const estoqueAtual = pick(r, "estoque_atual");
+              const estoqueMinimo = pick(r, "estoque_minimo");
+
+              const custoCompra = pick(r, "custo_compra");
+              const precoVenda = pick(r, "preco_venda");
+
+              return {
+                codigo: cod,
+                descricao: desc,
+
+                ...(estoqueAtual != null
+                  ? { estoque_atual: num(estoqueAtual) }
+                  : {}),
+
+                ...(estoqueMinimo != null
+                  ? { estoque_minimo: num(estoqueMinimo) }
+                  : {}),
+
+                ...(custoCompra != null
+                  ? { custo_compra: num(custoCompra) }
+                  : {}),
+
+                ...(precoVenda != null
+                  ? { preco_venda: num(precoVenda) }
+                  : {}),
+              };
             })
             .filter((x): x is NonNullable<typeof x> => !!x);
+
           console.log("Estoque válido:", rows.length);
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("produtos").upsert(rows.slice(i, i + 500), { onConflict: "codigo" });
-            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
+            if (error) {
+              errors.push(error.message); break;
+            }
+            ok += Math.min(500, rows.length - i);
           }
           const { data: pmap = [] } = await supabase.from("produtos").select("id,codigo");
           codeToId = new Map((pmap ?? []).map((p) => [String(p.codigo), p.id]));
@@ -254,7 +320,10 @@ function ImportarPage() {
           console.log("Compras válidas:", rows.length);
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("compras").insert(rows.slice(i, i + 500));
-            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
+            if (error) {
+              errors.push(error.message); break;
+            }
+            ok += Math.min(500, rows.length - i);
           }
         } else if (kind === "vendas") {
           const produtos = await carregarProdutos();
@@ -281,7 +350,18 @@ function ImportarPage() {
               codeToId,
               nameToId,
               nameToCode,
+              produtos.ambiguousNames,
             );
+
+            if (produto.ambiguous) {
+              skipped++;
+              errors.push(
+                `Produto ambíguo: "${String(
+                  pick(r, "descricao") ?? ""
+                )}". Informe o SKU/código do produto na planilha.`
+              );
+              return null;
+            }
 
             const data = excelDateToISO(pick(r, "data"));
             if (!data) { skipped++; return null; }
@@ -346,9 +426,19 @@ function ImportarPage() {
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);
           console.log("Vendas válidas:", rows.length);
-          for (let i = 0; i < rows.length; i += 500) {
-            const { error } = await supabase.from("vendas").insert(rows.slice(i, i + 500));
-            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
+          if (errors.length === 0) {
+            for (let i = 0; i < rows.length; i += 500) {
+              const { error } = await supabase
+                .from("vendas")
+                .insert(rows.slice(i, i + 500));
+
+              if (error) {
+                errors.push(error.message);
+                break;
+              }
+
+              ok += Math.min(500, rows.length - i);
+            }
           }
         }
         else if (kind === "movimentacoes") {
@@ -364,8 +454,26 @@ function ImportarPage() {
           }).filter((x): x is NonNullable<typeof x> => !!x);
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("movimentacoes").insert(rows.slice(i, i + 500));
-            if (error) errors.push(error.message); else ok += Math.min(500, rows.length - i);
+            if (error) {
+              errors.push(error.message); break;
+            }
+            ok += Math.min(500, rows.length - i);
           }
+        }
+
+        if (errors.length > 0) {
+          rep.push({
+            kind,
+            ok,
+            skipped,
+            errors,
+          });
+
+          setReport(rep);
+
+          throw new Error(
+            `Falha ao importar ${kind}: ${errors[0]}`
+          );
         }
 
         const produtos = await carregarProdutos();
@@ -379,11 +487,40 @@ function ImportarPage() {
         setProgress(Math.round(((s + 1) / totalSheets) * 100));
       }
       setReport(rep);
-      toast.success("Importação finalizada — veja o relatório abaixo");
+
+      const houveErros = rep.some(
+        (item) => item.errors.length > 0
+      );
+
+      if (houveErros) {
+        toast.error(
+          "Importação concluída com erros — veja o relatório abaixo"
+        );
+      } else {
+        toast.success(
+          "Importação finalizada — veja o relatório abaixo"
+        );
+      }
     } catch (e) {
       toast.error("Falha na importação", { description: e instanceof Error ? e.message : String(e) });
     } finally {
-      setRunning(false); setStep("");
+      await Promise.all([
+        qc.invalidateQueries({
+          queryKey: queryKeys.produtos.all,
+        }),
+        qc.invalidateQueries({
+          queryKey: queryKeys.compras.all,
+        }),
+        qc.invalidateQueries({
+          queryKey: queryKeys.vendas.all,
+        }),
+        qc.invalidateQueries({
+          queryKey: queryKeys.movimentacoes.all,
+        }),
+      ]);
+
+      setRunning(false);
+      setStep("");
     }
   };
 
@@ -413,12 +550,10 @@ function ImportarPage() {
           </div>
           <label className="flex items-center gap-2 text-sm">
             <Checkbox checked={wipeBeforeImport} onCheckedChange={(v) => setWipeBeforeImport(Boolean(v))} />
-            Limpar TODOS os dados antes de importar (substituição total)
+            Limpar dados importáveis antes de importar (substituição dos dados da planilha)
           </label>
         </div>
       </Section>
-
-
 
       {sheets.length > 0 && (
         <Section title="2. Confirme o mapeamento de cada aba" className="mt-6">

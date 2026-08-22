@@ -79,6 +79,25 @@ export const FIELD_SYNONYMS: Record<
       "min",
       "reposicao",
     ],
+
+    custo_compra: [
+      "custo",
+      "custo unit",
+      "custo unitario",
+      "custo unitário",
+      "preco custo",
+      "preço custo",
+      "unit cost",
+    ],
+
+    preco_venda: [
+      "preco venda",
+      "preço venda",
+      "preco de venda",
+      "preço de venda",
+      "valor venda",
+      "selling price",
+    ],
   },
 
   compras: {
@@ -134,10 +153,6 @@ export const FIELD_SYNONYMS: Record<
       "código",
       "cod",
       "sku",
-      "pedido",
-      "nº pedido",
-      "numero pedido",
-      "pedido venda",
     ],
 
     descricao: [

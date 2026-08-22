@@ -15,6 +15,7 @@ import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
 import { CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { todayISO } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/compras")({
     component: ComprasPage,
@@ -141,8 +142,7 @@ function ComprasPage() {
     }, [compras, busca, fornecedorFiltro]);
 
     const resumo = useMemo(() => {
-        const agora = new Date();
-        const mesAtual = agora.toISOString().slice(0, 7);
+        const mesAtual = todayISO().slice(0, 7);
 
         const comprasMes = compras.filter(
             (compra) =>
@@ -237,9 +237,7 @@ function ComprasPage() {
         ).toLocaleDateString("pt-BR");
     };
 
-    const hoje = new Date()
-        .toISOString()
-        .slice(0, 10);
+    const hoje = todayISO();
 
     const empty =
         !isLoading && compras.length === 0;

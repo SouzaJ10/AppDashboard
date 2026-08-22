@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { todayISO } from "@/lib/format";
 
 type Props = {
     vendas: any[];
@@ -33,9 +34,7 @@ export function useDashboardMetrics({
     movimentacoes,
 }: Props) {
     const k = useMemo(() => {
-        const hoje = new Date()
-            .toISOString()
-            .slice(0, 10);
+        const hoje = todayISO();
 
         const mesAtual = hoje.slice(0, 7);
 
@@ -480,4 +479,4 @@ export function useDashboardMetrics({
         monthly,
         fluxo,
     };
-}''
+} ''

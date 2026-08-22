@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line, ComposedChart, } from "recharts";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useRealtime } from "@/hooks/useRealtime";
-import { brl, dateBR, pct } from "@/lib/format";
+import { brl, dateBR, pct, todayISO } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
 import { Download, TrendingUp, TrendingDown, Wallet, Percent, DollarSign, Receipt } from "lucide-react";
 import { queryKeys } from "@/constants/queryKeys";
@@ -124,8 +124,7 @@ function FluxoCaixaPage() {
       ? receitas / vendas.length
       : 0;
 
-    const now = new Date();
-    const ym = now.toISOString().slice(0, 7);
+    const ym = todayISO().slice(0, 7);
 
     const vendasMes = vendas.filter(
       (v) => (v.data ?? "").startsWith(ym)

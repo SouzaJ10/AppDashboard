@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "
 import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, } from "recharts";
 import { TrendingDown, TrendingUp, Wallet, } from "lucide-react";
-import { brl, dateBR } from "@/lib/format";
+import { brl, dateBR, todayISO } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { queryKeys } from "@/constants/queryKeys";
 
@@ -116,9 +116,7 @@ function FinanceiroPage() {
       0
     );
 
-    const hoje = new Date()
-      .toISOString()
-      .slice(0, 10);
+    const hoje = todayISO();
 
     const vencidas = pendentes.filter(
       (compra) =>

@@ -227,18 +227,6 @@ function DespesasPage() {
         qc.invalidateQueries({
           queryKey: queryKeys.despesas.all,
         }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.financeiro.all,
-        }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.movimentacoes.all,
-        }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.dashboard.all,
-        }),
       ]);
     } catch (e) {
       toast.error(
@@ -266,18 +254,6 @@ function DespesasPage() {
       await Promise.all([
         qc.invalidateQueries({
           queryKey: queryKeys.despesas.all,
-        }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.financeiro.all,
-        }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.movimentacoes.all,
-        }),
-
-        qc.invalidateQueries({
-          queryKey: queryKeys.dashboard.all,
         }),
       ]);
     } catch (e) {

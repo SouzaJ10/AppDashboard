@@ -64,10 +64,6 @@ function ComprasPage() {
                 }),
 
                 qc.invalidateQueries({
-                    queryKey: queryKeys.dashboard.all,
-                }),
-
-                qc.invalidateQueries({
                     queryKey: queryKeys.movimentacoes.all,
                 }),
             ]);
@@ -96,10 +92,6 @@ function ComprasPage() {
 
                 qc.invalidateQueries({
                     queryKey: queryKeys.movimentacoes.all,
-                }),
-
-                qc.invalidateQueries({
-                    queryKey: queryKeys.dashboard.all,
                 }),
             ]);
         } catch (e) {

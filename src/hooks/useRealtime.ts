@@ -15,9 +15,8 @@ export function useRealtime(tables: string[]) {
         "postgres_changes" as never,
         { event: "*", schema: "public", table: t },
         () => {
-          // Invalida tanto a key singular quanto a "-all"
+          // Invalida toda a família de queries ligada à tabela.
           qc.invalidateQueries({ queryKey: [t] });
-          qc.invalidateQueries({ queryKey: [`${t}-all`] });
         },
       );
     }

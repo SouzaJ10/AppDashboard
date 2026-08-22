@@ -107,9 +107,6 @@ export function NovaCompraDialog() {
                     queryKey: queryKeys.compras.all,
                 }),
                 qc.invalidateQueries({
-                    queryKey: queryKeys.dashboard.all,
-                }),
-                qc.invalidateQueries({
                     queryKey: queryKeys.movimentacoes.all,
                 }),
             ]);

@@ -1,8 +1,4 @@
 export const queryKeys = {
-  dashboard: {
-    all: ["dashboard"] as const,
-  },
-
   vendas: {
     all: ["vendas"] as const,
     faturamento: ["vendas", "faturamento"] as const,

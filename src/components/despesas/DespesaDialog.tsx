@@ -229,10 +229,6 @@ export function DespesaDialog({
         }),
 
         qc.invalidateQueries({
-          queryKey: queryKeys.financeiro.all,
-        }),
-
-        qc.invalidateQueries({
           queryKey: queryKeys.movimentacoes.all,
         }),
 

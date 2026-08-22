@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { listarProdutosParaVenda, registrarVenda, } from "@/service/vendas.service"; import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
+import { registrarVenda } from "@/service/vendas.service";
+import { listarProdutos } from "@/service/produto.service";
+import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -26,7 +28,7 @@ export function NovaVendaDialog() {
 
   const { data: produtos = [] } = useQuery({
     queryKey: queryKeys.produtos.lista,
-    queryFn: listarProdutosParaVenda,
+    queryFn: listarProdutos,
     enabled: open,
   });
 
@@ -51,6 +53,20 @@ export function NovaVendaDialog() {
     const vu = Number(valorUnit);
     const desc = Number(desconto) || 0;
     const fr = Number(frete) || 0;
+    if (desc < 0) {
+      return toast.error("Desconto não pode ser negativo");
+    }
+
+    if (fr < 0) {
+      return toast.error("Frete não pode ser negativo");
+    }
+
+    if (desc >= vu * q) {
+      return toast.error("Desconto inválido", {
+        description: "O desconto deve ser menor que o valor total da venda.",
+      });
+    }
+
     if (!q || q <= 0) return toast.error("Quantidade inválida");
     if (!vu || vu <= 0) return toast.error("Valor unitário inválido");
     if (Number(produto.estoque_atual ?? 0) < q) {
@@ -58,15 +74,6 @@ export function NovaVendaDialog() {
         description: `Disponível: ${produto.estoque_atual} un.`,
       });
     }
-
-    const preco_venda = vu * q - desc;
-    const despesas = fr;
-    // Usa custo cadastrado do produto × quantidade (módulo de produtos).
-    const custo = Number(produto.custo_compra ?? 0) * q;
-    const lucro = preco_venda - custo - despesas;
-    const margem = preco_venda ? lucro / preco_venda : 0;
-    const descricao = [produto.descricao, cliente && `→ ${cliente}`, obs && `(${obs})`]
-      .filter(Boolean).join(" ");
 
     setSaving(true);
     try {
@@ -130,11 +137,11 @@ export function NovaVendaDialog() {
             </div>
             <div>
               <Label>Desconto (R$)</Label>
-              <Input type="number" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} />
+              <Input type="number" min="0" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} />
             </div>
             <div>
               <Label>Frete (R$)</Label>
-              <Input type="number" step="0.01" value={frete} onChange={(e) => setFrete(e.target.value)} />
+              <Input type="number" min="0" step="0.01" value={frete} onChange={(e) => setFrete(e.target.value)} />
             </div>
           </div>
           <div>

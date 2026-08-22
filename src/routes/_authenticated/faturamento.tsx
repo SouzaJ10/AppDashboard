@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listarVendas } from "@/service/vendas.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -120,21 +120,10 @@ function FaturamentoPage() {
   const [to, setTo] = useState("");
   const [chartTab, setChartTab] = useState<"diario" | "semanal" | "mensal" | "anual">("diario");
   const { data: vendas = [], isLoading } = useQuery({
-    queryKey: queryKeys.vendas.faturamento,
-
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vendas")
-        .select("data,preco_venda")
-        .order("data", { ascending: true });
-
-      if (error) {
-        throw error;
-      }
-
-      return data ?? [];
-    },
+    queryKey: queryKeys.vendas.all,
+    queryFn: listarVendas,
   });
+
   const range = useMemo(() => resolveRange(preset, from, to), [preset, from, to]);
   // Soma por dia (mapa data -> faturamento). Chave = string crua "YYYY-MM-DD"
   // exatamente como vem do banco — sem conversão de fuso.
@@ -148,6 +137,7 @@ function FaturamentoPage() {
     }
     return m;
   }, [vendas]);
+
   const sumBetween = (a: Date, b: Date) => {
     if (b < a) return 0;
     let total = 0;
@@ -159,6 +149,7 @@ function FaturamentoPage() {
     }
     return total;
   };
+  
   // ---------- KPIs comparativos (janela equivalente) ----------
   // Para um comparativo justo, o período anterior usa o MESMO número de dias
   // já decorridos do período atual (ex.: mês atual dia 1→hoje vs mês anterior

@@ -23,30 +23,6 @@ export async function buscarVenda(id: string) {
   return data;
 }
 
-export async function excluirVenda(id: string) {
-  const { error } = await supabase
-    .from("vendas")
-    .delete()
-    .eq("id", id);
-
-  if (error) throw error;
-}
-
-import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
-
-export async function listarProdutosParaVenda() {
-  const { data, error } = await supabase
-    .from("produtos")
-    .select("*")
-    .order("descricao");
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as ProdutoFull[];
-}
-
 type RegistrarVendaInput = {
   produtoId: string;
   quantidade: number;

@@ -7,7 +7,6 @@ function InsightsPage() {
 export const queryKeys = {
   vendas: {
     all: ["vendas"] as const,
-    faturamento: ["vendas", "faturamento"] as const,
   },
 
   produtos: {

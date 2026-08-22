@@ -48,20 +48,12 @@ BEGIN
         RAISE EXCEPTION 'O produto está inativo e não pode ser vendido.';
     END IF;
 
-    IF p_quantidade IS NULL OR p_quantidade <= 0 THEN
+    IF p_quantidade <= 0 THEN
         RAISE EXCEPTION 'A quantidade deve ser maior que zero.';
     END IF;
 
-    IF p_valor_unitario IS NULL OR p_valor_unitario <= 0 THEN
+    IF p_valor_unitario <= 0 THEN
         RAISE EXCEPTION 'O valor unitário deve ser maior que zero.';
-    END IF;
-
-    IF COALESCE(p_desconto, 0) < 0 THEN
-        RAISE EXCEPTION 'O desconto não pode ser negativo.';
-    END IF;
-
-    IF COALESCE(p_frete, 0) < 0 THEN
-        RAISE EXCEPTION 'O frete não pode ser negativo.';
     END IF;
 
     IF v_produto.estoque_atual < p_quantidade THEN
@@ -74,11 +66,6 @@ BEGIN
     v_preco_total :=
         (p_valor_unitario * p_quantidade)
         - COALESCE(p_desconto, 0);
-
-    IF v_preco_total <= 0 THEN
-        RAISE EXCEPTION
-            'O desconto deve ser menor que o valor total da venda.';
-    END IF;
 
     v_despesas := COALESCE(p_frete, 0);
 

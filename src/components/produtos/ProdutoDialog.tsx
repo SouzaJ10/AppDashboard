@@ -1,14 +1,13 @@
 import { useEffect, useState } from "react";
 import { useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
 import type { ProdutoFull } from "@/integrations/supabase/produtos-extra";
 import { Button } from "@/components/ui/button";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription,} from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, DialogDescription, } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue,} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 import { toast } from "sonner";
 import { Plus, Pencil, Loader2 } from "lucide-react";
 import { salvarProduto } from "@/service/produto.service";
@@ -68,7 +67,7 @@ export function ProdutoDialog({ produto, trigger }: Props) {
     setForm((f) => ({ ...f, [k]: v }));
 
   const onSave = async () => {
-    const codigo = Number(form.codigo);
+    const codigo = form.codigo.trim();
 
     if (!codigo) {
       return toast.error("Código do produto é obrigatório");
@@ -143,7 +142,7 @@ export function ProdutoDialog({ produto, trigger }: Props) {
         <div className="grid gap-3 sm:grid-cols-2">
           <div>
             <Label>Código *</Label>
-            <Input type="number" value={form.codigo} onChange={(e) => set("codigo", e.target.value)} disabled={isEdit} />
+            <Input type="text" value={form.codigo} onChange={(e) => set("codigo", e.target.value)} disabled={isEdit} />
           </div>
           <div>
             <Label>Nome do produto *</Label>

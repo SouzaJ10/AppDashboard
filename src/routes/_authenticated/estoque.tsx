@@ -101,12 +101,21 @@ function EstoquePage() {
     });
 
     return [...resultado].sort((a, b) => {
-      const codigoA = Number(a.codigo ?? 0);
-      const codigoB = Number(b.codigo ?? 0);
+      const codigoA = String(a.codigo ?? "");
+      const codigoB = String(b.codigo ?? "");
+
+      const comparacao = codigoA.localeCompare(
+        codigoB,
+        "pt-BR",
+        {
+          numeric: true,
+          sensitivity: "base",
+        }
+      );
 
       return ordemCodigo === "codigo-asc"
-        ? codigoA - codigoB
-        : codigoB - codigoA;
+        ? comparacao
+        : -comparacao;
     });
   }, [produtos, q, categoria, status, ordemCodigo]);
 

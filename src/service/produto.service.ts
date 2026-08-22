@@ -11,34 +11,6 @@ export async function listarProdutos() {
     return (data ?? []) as ProdutoFull[];
 }
 
-export async function buscarProduto(id: string) {
-    const { data, error } = await supabase
-        .from("produtos")
-        .select("*")
-        .eq("id", id)
-        .single();
-    if (error) throw error;
-    return data as ProdutoFull;
-}
-
-export async function criarProduto(produto: ProdutoInsert) {
-    const { error } = await supabase
-        .from("produtos")
-        .insert(produto);
-    if (error) throw error;
-}
-
-export async function atualizarProduto(
-    id: string,
-    produto: ProdutoUpdate
-) {
-    const { error } = await supabase
-        .from("produtos")
-        .update(produto)
-        .eq("id", id);
-    if (error) throw error;
-}
-
 export async function excluirProduto(id: string) {
     const { error } = await supabase
         .from("produtos")

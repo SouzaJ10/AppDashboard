@@ -5,7 +5,7 @@ import { queryKeys } from "@/constants/queryKeys";
 
 export function useProdutos() {
   const query = useQuery({
-    queryKey: queryKeys.produtos.all,
+    queryKey: queryKeys.produtos.lista,
     queryFn: listarProdutos,
   });
 

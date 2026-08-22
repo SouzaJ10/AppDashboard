@@ -1,3 +1,9 @@
+import { useRealtime } from "@/hooks/useRealtime";
+
+function InsightsPage() {
+  useRealtime(["vendas", "produtos", "movimentacoes"]);
+}
+
 export const queryKeys = {
   vendas: {
     all: ["vendas"] as const,
@@ -7,9 +13,6 @@ export const queryKeys = {
   produtos: {
     all: ["produtos"] as const,
     lista: ["produtos", "lista"] as const,
-
-    // Giro é derivado das vendas, por isso pertence à família
-    // de invalidação de "vendas".
     giro: ["vendas", "giro-produtos"] as const,
   },
 
@@ -25,17 +28,7 @@ export const queryKeys = {
     all: ["despesas"] as const,
   },
 
-  insights: {
-    vendas: ["vendas", "insights"] as const,
-    produtos: ["produtos", "insights"] as const,
-    movimentacoes: ["movimentacoes", "insights"] as const,
-  },
-
   categoriasDespesa: {
     all: ["categorias_despesa"] as const,
-  },
-
-  precificacao: {
-    vendas: ["vendas", "precificacao"] as const,
   },
 };

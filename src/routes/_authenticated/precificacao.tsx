@@ -1,31 +1,24 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { brl, num, pct } from "@/lib/format";
 import { queryKeys } from "@/constants/queryKeys";
+import { listarVendas } from "@/service/vendas.service";
+import { useRealtime } from "@/hooks/useRealtime";
 
 export const Route = createFileRoute("/_authenticated/precificacao")({
   component: PrecificacaoPage,
 });
 
 function PrecificacaoPage() {
+  useRealtime(["vendas"]);
+
   const { data: vendas = [] } = useQuery({
-    queryKey: queryKeys.precificacao.vendas,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vendas")
-        .select("*");
-
-      if (error) {
-        throw error;
-      }
-
-      return data ?? [];
-    },
+    queryKey: queryKeys.vendas.all,
+    queryFn: listarVendas,
   });
 
   const linhas = useMemo(() => {

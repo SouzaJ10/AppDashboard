@@ -28,7 +28,7 @@ export function NovaCompraDialog() {
 
 
     const { data: produtos = [] } = useQuery({
-        queryKey: queryKeys.produtos.giro,
+        queryKey: queryKeys.produtos.lista,
         queryFn: listarProdutosParaCompra,
         enabled: open,
     });
@@ -102,9 +102,6 @@ export function NovaCompraDialog() {
             await Promise.all([
                 qc.invalidateQueries({
                     queryKey: queryKeys.produtos.all,
-                }),
-                qc.invalidateQueries({
-                    queryKey: queryKeys.produtos.giro,
                 }),
                 qc.invalidateQueries({
                     queryKey: queryKeys.compras.all,

@@ -64,10 +64,6 @@ function ComprasPage() {
                 }),
 
                 qc.invalidateQueries({
-                    queryKey: queryKeys.produtos.giro,
-                }),
-
-                qc.invalidateQueries({
                     queryKey: queryKeys.dashboard.all,
                 }),
 

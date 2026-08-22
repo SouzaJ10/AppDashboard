@@ -25,7 +25,7 @@ export function NovaVendaDialog() {
   const [obs, setObs] = useState("");
 
   const { data: produtos = [] } = useQuery({
-    queryKey: queryKeys.produtos.giro,
+    queryKey: queryKeys.produtos.lista,
     queryFn: listarProdutosParaVenda,
     enabled: open,
   });

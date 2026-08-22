@@ -9,6 +9,7 @@ export const queryKeys = {
 
   produtos: {
     all: ["produtos"] as const,
+    lista: ["produtos", "lista"] as const,
     giro: ["produtos-giro"] as const,
   },
 
@@ -39,7 +40,7 @@ export const queryKeys = {
   },
 
   financeiro: {
-  all: ["mov-fin"] as const,
-  compras: ["compras-fin"] as const,
-},
+    all: ["mov-fin"] as const,
+    compras: ["compras-fin"] as const,
+  },
 };

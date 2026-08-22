@@ -38,9 +38,4 @@ export const queryKeys = {
   precificacao: {
     vendas: ["vendas", "precificacao"] as const,
   },
-
-  financeiro: {
-    all: ["movimentacoes", "financeiro"] as const,
-    compras: ["compras", "financeiro"] as const,
-  },
 };

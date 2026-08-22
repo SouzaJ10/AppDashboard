@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section } from "@/components/dashboard/KpiCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -14,6 +14,7 @@ import { exportToXlsx } from "@/lib/export-xlsx";
 import { Download, TrendingUp, TrendingDown, Wallet, Percent, DollarSign, Receipt } from "lucide-react";
 import { queryKeys } from "@/constants/queryKeys";
 import { listarDespesas } from "@/service/despesas.service";
+import { listarVendas } from "@/service/vendas.service";
 
 export const Route = createFileRoute("/_authenticated/fluxo-caixa")({ component: FluxoCaixaPage });
 
@@ -35,19 +36,7 @@ function FluxoCaixaPage() {
 
   const vendasQ = useQuery({
     queryKey: queryKeys.vendas.all,
-
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("vendas")
-        .select("*")
-        .order("data", { ascending: false });
-
-      if (error) {
-        throw error;
-      }
-
-      return data ?? [];
-    },
+    queryFn: listarVendas,
   });
 
   const despesasQ = useQuery({
@@ -57,16 +46,7 @@ function FluxoCaixaPage() {
 
   const movimentacoesQ = useQuery({
     queryKey: queryKeys.movimentacoes.all,
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("*")
-        .order("data");
-
-      if (error) throw error;
-
-      return data ?? [];
-    },
+    queryFn: listarMovimentacoes,
   });
 
   const vendas = vendasQ.data ?? [];

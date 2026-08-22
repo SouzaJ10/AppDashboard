@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
+import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section } from "@/components/dashboard/KpiCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
@@ -11,6 +11,8 @@ import { TrendingDown, TrendingUp, Wallet, } from "lucide-react";
 import { brl, dateBR, todayISO } from "@/lib/format";
 import { Badge } from "@/components/ui/badge";
 import { queryKeys } from "@/constants/queryKeys";
+import { listarCompras } from "@/service/compras.service";
+import { useRealtime } from "@/hooks/useRealtime";
 
 type Periodo = "diario" | "semanal" | "mensal" | "anual";
 
@@ -49,38 +51,21 @@ function bucketKey(d: string, p: Periodo) {
 }
 
 function FinanceiroPage() {
+  useRealtime(["movimentacoes", "compras"]);
+
   const [periodo, setPeriodo] =
     useState<Periodo>("mensal");
 
   // MOVIMENTAÇÕES FINANCEIRAS
   const { data: mov = [] } = useQuery({
-    queryKey: queryKeys.financeiro.all,
-
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("movimentacoes")
-        .select("*")
-        .order("data");
-
-      if (error) throw error;
-
-      return data ?? [];
-    },
+    queryKey: queryKeys.movimentacoes.all,
+    queryFn: listarMovimentacoes,
   });
 
   // COMPRAS
   const { data: compras = [] } = useQuery({
-    queryKey: queryKeys.financeiro.compras,
-
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("compras")
-        .select("*");
-
-      if (error) throw error;
-
-      return data ?? [];
-    },
+    queryKey: queryKeys.compras.all,
+    queryFn: listarCompras,
   });
 
   // KPIs DE CAIXA

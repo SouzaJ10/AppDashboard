@@ -39,7 +39,7 @@ function FluxoCaixaPage() {
       const { data, error } = await supabase
         .from("vendas")
         .select("*")
-        .order("data");
+        .order("data", { ascending: false });
 
       if (error) {
         throw error;
@@ -55,7 +55,7 @@ function FluxoCaixaPage() {
       const { data, error } = await supabase
         .from("despesas")
         .select("*")
-        .order("data");
+        .order("data", { ascending: false });
 
       if (error) {
         throw error;

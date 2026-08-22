@@ -120,7 +120,7 @@ function FaturamentoPage() {
   const [to, setTo] = useState("");
   const [chartTab, setChartTab] = useState<"diario" | "semanal" | "mensal" | "anual">("diario");
   const { data: vendas = [], isLoading } = useQuery({
-    queryKey: queryKeys.vendas.all,
+    queryKey: queryKeys.vendas.faturamento,
 
     queryFn: async () => {
       const { data, error } = await supabase

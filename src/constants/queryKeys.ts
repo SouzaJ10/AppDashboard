@@ -5,12 +5,16 @@ export const queryKeys = {
 
   vendas: {
     all: ["vendas"] as const,
+    faturamento: ["vendas", "faturamento"] as const,
   },
 
   produtos: {
     all: ["produtos"] as const,
     lista: ["produtos", "lista"] as const,
-    giro: ["produtos-giro"] as const,
+
+    // Giro é derivado das vendas, por isso pertence à família
+    // de invalidação de "vendas".
+    giro: ["vendas", "giro-produtos"] as const,
   },
 
   movimentacoes: {
@@ -26,9 +30,9 @@ export const queryKeys = {
   },
 
   insights: {
-    vendas: ["vendas-ins"] as const,
-    produtos: ["produtos-ins"] as const,
-    movimentacoes: ["mov-ins"] as const,
+    vendas: ["vendas", "insights"] as const,
+    produtos: ["produtos", "insights"] as const,
+    movimentacoes: ["movimentacoes", "insights"] as const,
   },
 
   categoriasDespesa: {
@@ -36,11 +40,11 @@ export const queryKeys = {
   },
 
   precificacao: {
-    vendas: ["vendas-prec"] as const,
+    vendas: ["vendas", "precificacao"] as const,
   },
 
   financeiro: {
-    all: ["mov-fin"] as const,
-    compras: ["compras-fin"] as const,
+    all: ["movimentacoes", "financeiro"] as const,
+    compras: ["compras", "financeiro"] as const,
   },
 };

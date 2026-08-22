@@ -15,7 +15,8 @@ export async function listarVendasDashboard() {
 export async function listarComprasDashboard() {
   const { data, error } = await supabase
     .from("compras")
-    .select("*");
+    .select("*")
+    .order("data", { ascending: false });
 
   if (error) throw error;
 

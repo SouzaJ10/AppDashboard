@@ -480,4 +480,4 @@ export function useDashboardMetrics({
         monthly,
         fluxo,
     };
-}
+}''

@@ -24,4 +24,11 @@ export const queryKeys = {
   categoriasDespesa: {
     all: ["categorias_despesa"] as const,
   },
+
+  empresas: {
+  all: ["empresas"] as const,
+
+  usuario: (userId: string) =>
+    ["empresas", "usuario", userId] as const,
+},
 };

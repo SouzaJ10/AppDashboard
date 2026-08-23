@@ -1,13 +1,11 @@
 import { Link, useRouter, useRouterState } from "@tanstack/react-router";
 import { useState, type ReactNode } from "react";
-import {
-  LayoutDashboard, ShoppingCart, Package, Wallet, Calculator,
-  Sparkles, Upload, LogOut, Menu, X, Shield, LineChart, TrendingDown, Receipt, Truck
-} from "lucide-react";
+import { LayoutDashboard, ShoppingCart, Package, Wallet, Calculator, Sparkles, Upload, LogOut, Menu, X, Shield, LineChart, TrendingDown, Receipt, Truck } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth, useUserRole } from "@/hooks/useAuth";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; adminOnly?: boolean };
@@ -33,6 +31,9 @@ export function AppShell({ children, title, subtitle, actions }: {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
   const { user } = useAuth();
   const { isAdmin } = useUserRole();
+
+  const { empresaAtual } = useEmpresa();
+
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -85,6 +86,9 @@ export function AppShell({ children, title, subtitle, actions }: {
               <div className="truncate text-xs font-medium">{user?.email}</div>
               <div className="flex items-center gap-1 text-[10px] text-muted-foreground">
                 <Shield className="h-3 w-3" /> {isAdmin ? "Administrador" : "Usuário"}
+              </div>
+              <div className="truncate text-[10px] text-muted-foreground">
+                {empresaAtual?.nome ?? "Nenhuma empresa selecionada"}
               </div>
             </div>
             <button onClick={handleLogout} title="Sair" className="rounded-md p-2 hover:bg-accent">

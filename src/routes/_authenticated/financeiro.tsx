@@ -80,7 +80,7 @@ function bucketKey(
       (
         (dt.getTime() -
           onejan.getTime()) /
-          86400000 +
+        86400000 +
         onejan.getDay() +
         1
       ) / 7
@@ -119,14 +119,18 @@ function FinanceiroPage() {
 
   // MOVIMENTAÇÕES FINANCEIRAS
   // Ainda será migrado para empresa em etapa própria.
-  const {
-    data: mov = [],
-  } = useQuery({
-    queryKey:
-      queryKeys.movimentacoes.all,
+  const { data: mov = [] } = useQuery({
+    queryKey: queryKeys.movimentacoes.empresa(empresaId),
 
-    queryFn:
-      listarMovimentacoes,
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarMovimentacoes(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   // COMPRAS
@@ -186,9 +190,9 @@ function FinanceiroPage() {
         compras.filter(
           (compra) =>
             compra.forma_pagamento ===
-              "a_prazo" &&
+            "a_prazo" &&
             compra.status_pagamento !==
-              "pago"
+            "pago"
         );
 
       const valorPendente =
@@ -200,7 +204,7 @@ function FinanceiroPage() {
             total +
             Number(
               compra.custo_total ??
-                0
+              0
             ),
           0
         );
@@ -213,7 +217,7 @@ function FinanceiroPage() {
           (compra) =>
             !!compra.data_vencimento &&
             compra.data_vencimento <
-              hoje
+            hoje
         );
 
       const valorVencido =
@@ -225,7 +229,7 @@ function FinanceiroPage() {
             total +
             Number(
               compra.custo_total ??
-                0
+              0
             ),
           0
         );
@@ -416,7 +420,7 @@ function FinanceiroPage() {
           icon={TrendingDown}
           tone={
             comprasFinanceiro.valorVencido >
-            0
+              0
               ? "destructive"
               : "default"
           }
@@ -618,12 +622,12 @@ function FinanceiroPage() {
                     s
                   ) =>
                     s.length >
-                    22
+                      22
                       ? s.slice(
-                          0,
-                          22
-                        ) +
-                        "…"
+                        0,
+                        22
+                      ) +
+                      "…"
                       : s
                   }
                 />
@@ -715,7 +719,7 @@ function FinanceiroPage() {
 
                           <TableCell>
                             {tipo ===
-                            "venda" ? (
+                              "venda" ? (
                               <Badge variant="default">
                                 Venda
                               </Badge>
@@ -752,10 +756,10 @@ function FinanceiroPage() {
                               m.entrada
                             ) > 0
                               ? brl(
-                                  Number(
-                                    m.entrada
-                                  )
+                                Number(
+                                  m.entrada
                                 )
+                              )
                               : "—"}
                           </TableCell>
 
@@ -764,10 +768,10 @@ function FinanceiroPage() {
                               m.saida
                             ) > 0
                               ? brl(
-                                  Number(
-                                    m.saida
-                                  )
+                                Number(
+                                  m.saida
                                 )
+                              )
                               : "—"}
                           </TableCell>
                         </TableRow>

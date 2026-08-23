@@ -66,8 +66,17 @@ function InsightsPage() {
   });
 
   const { data: mov = [] } = useQuery({
-    queryKey: queryKeys.movimentacoes.all,
-    queryFn: listarMovimentacoes,
+    queryKey: queryKeys.movimentacoes.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarMovimentacoes(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const insights: Insight[] = useMemo(() => {

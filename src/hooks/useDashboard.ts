@@ -6,6 +6,7 @@ import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { listarProdutos } from "@/service/produto.service";
 import { listarDespesas } from "@/service/despesas.service";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import type { Despesa } from "@/integrations/supabase/despesas-extra";
 
 export function useDashboard() {
   const { empresaId } = useEmpresa();
@@ -39,8 +40,17 @@ export function useDashboard() {
   });
 
   const movimentacoes = useQuery({
-    queryKey: queryKeys.movimentacoes.all,
-    queryFn: listarMovimentacoes,
+    queryKey: queryKeys.movimentacoes.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarMovimentacoes(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const produtos = useQuery({
@@ -58,8 +68,17 @@ export function useDashboard() {
   });
 
   const despesasQ = useQuery({
-    queryKey: queryKeys.despesas.all,
-    queryFn: listarDespesas,
+    queryKey: queryKeys.despesas.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarDespesas(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   return {
@@ -67,7 +86,7 @@ export function useDashboard() {
     compras: compras.data ?? [],
     movimentacoes: movimentacoes.data ?? [],
     produtos: produtos.data ?? [],
-    despesas: despesasQ.data ?? [],
+    despesas: (despesasQ.data ?? []) as Despesa[],
 
     loading:
       vendas.isLoading ||

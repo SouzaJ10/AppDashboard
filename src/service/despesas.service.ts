@@ -2,23 +2,20 @@ import { supabase } from "@/integrations/supabase/client";
 import type { Despesa, FormaPagamentoDespesa, } from "@/integrations/supabase/despesas-extra";
 import type { StatusDespesa } from "@/types/domain";
 
-export async function listarDespesas() {
+export async function listarDespesas(
+    empresaId: string
+) {
     const { data, error } = await supabase
         .from("despesas")
         .select("*")
+        .eq("empresa_id", empresaId)
         .order("data", { ascending: false });
 
     if (error) {
         throw error;
     }
 
-    return (data ?? []).map((despesa) => ({
-        ...despesa,
-        forma_pagamento:
-            despesa.forma_pagamento as Despesa["forma_pagamento"],
-        status:
-            despesa.status as Despesa["status"],
-    }));
+    return data ?? [];
 }
 
 export type SalvarDespesaInput = {

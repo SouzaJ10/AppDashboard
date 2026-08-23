@@ -19,6 +19,7 @@ import { Trash2, Download, Pencil, CheckCircle, } from "lucide-react";
 import { toast } from "sonner";
 import { queryKeys } from "@/constants/queryKeys";
 import { excluirDespesa, listarDespesas, pagarDespesa, } from "@/service/despesas.service";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 type AbaDespesas = "historico" | "contas";
 
@@ -33,6 +34,7 @@ function DespesasPage() {
   ]);
 
   const qc = useQueryClient();
+  const { empresaId } = useEmpresa();
 
   const [q, setQ] = useState("");
   const [catFilter, setCatFilter] =
@@ -43,12 +45,21 @@ function DespesasPage() {
     useState<AbaDespesas>("historico");
 
   const despesasQ = useQuery({
-    queryKey: queryKeys.despesas.all,
-    queryFn: listarDespesas,
+    queryKey: queryKeys.despesas.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarDespesas(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
-  const despesas =
-    despesasQ.data ?? [];
+  const despesas: Despesa[] =
+    (despesasQ.data ?? []) as Despesa[];
 
   const missingTable =
     despesasQ.isError &&

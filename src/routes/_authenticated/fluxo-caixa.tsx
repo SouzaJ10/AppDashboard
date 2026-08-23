@@ -6,8 +6,8 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section } from "@/components/dashboard/KpiCard";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line, ComposedChart,} from "recharts";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow,} from "@/components/ui/table";
+import { AreaChart, Area, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, Line, ComposedChart, } from "recharts";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { useRealtime } from "@/hooks/useRealtime";
 import { brl, dateBR, pct, todayISO } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
@@ -79,13 +79,31 @@ function FluxoCaixaPage() {
   });
 
   const despesasQ = useQuery({
-    queryKey: queryKeys.despesas.all,
-    queryFn: listarDespesas,
+    queryKey: queryKeys.despesas.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarDespesas(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const movimentacoesQ = useQuery({
-    queryKey: queryKeys.movimentacoes.all,
-    queryFn: listarMovimentacoes,
+    queryKey: queryKeys.movimentacoes.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarMovimentacoes(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const vendas =
@@ -986,20 +1004,20 @@ function FluxoCaixaPage() {
               <Bar
                 dataKey="Receitas"
                 fill="var(--color-chart-2)"
-                radius={[4,4,0,0,]}
+                radius={[4, 4, 0, 0,]}
               />
 
               <Bar
                 dataKey="Custos"
                 fill="var(--color-chart-4)"
-                radius={[ 4, 4, 0, 0,
+                radius={[4, 4, 0, 0,
                 ]}
               />
 
               <Bar
                 dataKey="Despesas"
                 fill="var(--color-chart-5)"
-                radius={[ 4, 4, 0, 0,
+                radius={[4, 4, 0, 0,
                 ]}
               />
             </BarChart>

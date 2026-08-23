@@ -1,9 +1,3 @@
-import { useRealtime } from "@/hooks/useRealtime";
-
-function InsightsPage() {
-  useRealtime(["vendas", "produtos", "movimentacoes"]);
-}
-
 export const queryKeys = {
   vendas: {
     all: ["vendas"] as const,

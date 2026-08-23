@@ -285,7 +285,6 @@ function ImportarPage() {
             })
             .filter((x): x is NonNullable<typeof x> => !!x);
 
-          console.log("Estoque válido:", rows.length);
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("produtos").upsert(rows.slice(i, i + 500), { onConflict: "codigo" });
             if (error) {
@@ -317,7 +316,6 @@ function ImportarPage() {
               data: excelDateToISO(pick(r, "data")),
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);
-          console.log("Compras válidas:", rows.length);
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("compras").insert(rows.slice(i, i + 500));
             if (error) {
@@ -425,7 +423,6 @@ function ImportarPage() {
               data,
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);
-          console.log("Vendas válidas:", rows.length);
           if (errors.length === 0) {
             for (let i = 0; i < rows.length; i += 500) {
               const { error } = await supabase

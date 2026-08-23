@@ -12,18 +12,6 @@ export async function listarCompras() {
     return data ?? [];
 }
 
-export async function buscarCompra(id: string) {
-    const { data, error } = await supabase
-        .from("compras")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-    if (error) throw error;
-
-    return data;
-}
-
 export async function excluirCompra(id: string) {
     const { error } = await supabase.rpc("excluir_compra", {
         p_compra_id: id,

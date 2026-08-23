@@ -11,18 +11,6 @@ export async function listarVendas() {
   return data ?? [];
 }
 
-export async function buscarVenda(id: string) {
-  const { data, error } = await supabase
-    .from("vendas")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error) throw error;
-
-  return data;
-}
-
 type RegistrarVendaInput = {
   produtoId: string;
   quantidade: number;

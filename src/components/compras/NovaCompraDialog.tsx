@@ -10,6 +10,7 @@ import { listarProdutosParaCompra, registrarCompra, } from "@/service/compras.se
 import { queryKeys } from "@/constants/queryKeys";
 import { toast } from "sonner";
 import type { FormaPagamento } from "@/types/domain";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function NovaCompraDialog() {
     const qc = useQueryClient();
@@ -22,15 +23,23 @@ export function NovaCompraDialog() {
     const [custoUnitario, setCustoUnitario] = useState("");
     const [fornecedor, setFornecedor] = useState("");
     const [dataVencimento, setDataVencimento] = useState("");
+    const { empresaId } = useEmpresa();
 
     const [formaPagamento, setFormaPagamento] =
         useState<FormaPagamento>("a_vista");
 
-
     const { data: produtos = [] } = useQuery({
-        queryKey: queryKeys.produtos.lista,
-        queryFn: listarProdutosParaCompra,
-        enabled: open,
+        queryKey: queryKeys.produtos.listaEmpresa(empresaId),
+
+        queryFn: async () => {
+            if (!empresaId) {
+                return [];
+            }
+
+            return listarProdutosParaCompra(empresaId);
+        },
+
+        enabled: open && !!empresaId,
     });
 
     useEffect(() => {

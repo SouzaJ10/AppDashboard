@@ -11,6 +11,7 @@ import { listarVendas } from "@/service/vendas.service";
 import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { useRealtime } from "@/hooks/useRealtime";
 import { TrendingUp, TrendingDown, AlertTriangle, Trophy, PackageX, Boxes, Lightbulb, } from "lucide-react";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: InsightsPage,
@@ -34,14 +35,34 @@ function InsightsPage() {
     "movimentacoes",
   ]);
 
+  const { empresaId } = useEmpresa();
+
   const { data: vendas = [] } = useQuery({
-    queryKey: queryKeys.vendas.all,
-    queryFn: listarVendas,
+    queryKey: queryKeys.vendas.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarVendas(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const { data: produtos = [] } = useQuery({
-    queryKey: queryKeys.produtos.lista,
-    queryFn: listarProdutos,
+    queryKey: queryKeys.produtos.listaEmpresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarProdutos(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const { data: mov = [] } = useQuery({

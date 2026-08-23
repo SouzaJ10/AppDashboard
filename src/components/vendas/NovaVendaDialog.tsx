@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "
 import { toast } from "sonner";
 import { Plus, Loader2 } from "lucide-react";
 import { queryKeys } from "@/constants/queryKeys";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function NovaVendaDialog() {
   const qc = useQueryClient();
@@ -25,11 +26,20 @@ export function NovaVendaDialog() {
   const [frete, setFrete] = useState("0");
   const [cliente, setCliente] = useState("");
   const [obs, setObs] = useState("");
+  const { empresaId } = useEmpresa();
 
   const { data: produtos = [] } = useQuery({
-    queryKey: queryKeys.produtos.lista,
-    queryFn: listarProdutos,
-    enabled: open,
+    queryKey: queryKeys.produtos.listaEmpresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarProdutos(empresaId);
+    },
+
+    enabled: open && !!empresaId,
   });
 
   // Auto-preenche o valor unitário com o preço cadastrado do produto.

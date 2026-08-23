@@ -1,9 +1,10 @@
 import { supabase } from "@/integrations/supabase/client";
 
-export async function listarVendas() {
+export async function listarVendas(empresaId: string) {
   const { data, error } = await supabase
     .from("vendas")
     .select("*")
+    .eq("empresa_id", empresaId)
     .order("data", { ascending: false });
 
   if (error) throw error;
@@ -39,10 +40,13 @@ export async function registrarVenda(input: RegistrarVendaInput) {
   return data as string;
 }
 
-export async function listarGiroProdutos() {
+export async function listarGiroProdutos(
+  empresaId: string
+) {
   const { data, error } = await supabase
     .from("vendas")
-    .select("descricao, quantidade");
+    .select("descricao, quantidade")
+    .eq("empresa_id", empresaId);
 
   if (error) {
     throw error;

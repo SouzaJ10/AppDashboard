@@ -2,13 +2,16 @@ import { supabase } from "@/integrations/supabase/client";
 
 import type { ProdutoFull, ProdutoInsert, ProdutoUpdate, } from "@/integrations/supabase/produtos-extra";
 
-export async function listarProdutos() {
-    const { data, error } = await supabase
-        .from("produtos")
-        .select("*")
-        .order("descricao");
-    if (error) throw error;
-    return (data ?? []) as ProdutoFull[];
+export async function listarProdutos(empresaId: string) {
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("*")
+    .eq("empresa_id", empresaId)
+    .order("descricao");
+
+  if (error) throw error;
+
+  return (data ?? []) as ProdutoFull[];
 }
 
 export async function excluirProduto(id: string) {

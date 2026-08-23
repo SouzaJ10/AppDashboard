@@ -5,16 +5,37 @@ import { listarCompras } from "@/service/compras.service";
 import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { listarProdutos } from "@/service/produto.service";
 import { listarDespesas } from "@/service/despesas.service";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function useDashboard() {
+  const { empresaId } = useEmpresa();
+
   const vendas = useQuery({
-    queryKey: queryKeys.vendas.all,
-    queryFn: listarVendas,
+    queryKey: queryKeys.vendas.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarVendas(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const compras = useQuery({
-    queryKey: queryKeys.compras.all,
-    queryFn: listarCompras,
+    queryKey: queryKeys.compras.empresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarCompras(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const movimentacoes = useQuery({
@@ -23,8 +44,17 @@ export function useDashboard() {
   });
 
   const produtos = useQuery({
-    queryKey: queryKeys.produtos.lista,
-    queryFn: listarProdutos,
+    queryKey: queryKeys.produtos.listaEmpresa(empresaId),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarProdutos(empresaId);
+    },
+
+    enabled: !!empresaId,
   });
 
   const despesasQ = useQuery({

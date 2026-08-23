@@ -6,77 +6,169 @@ import { AppShell } from "@/components/layout/AppShell";
 import { KpiCard, Section } from "@/components/dashboard/KpiCard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
 import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend, BarChart, Bar, } from "recharts";
-import { TrendingDown, TrendingUp, Wallet, } from "lucide-react";
-import { brl, dateBR, todayISO } from "@/lib/format";
+import {
+  AreaChart,
+  Area,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  CartesianGrid,
+  Legend,
+  BarChart,
+  Bar,
+} from "recharts";
+
+import {
+  TrendingDown,
+  TrendingUp,
+  Wallet,
+} from "lucide-react";
+
+import {
+  brl,
+  dateBR,
+  todayISO,
+} from "@/lib/format";
+
 import { Badge } from "@/components/ui/badge";
 import { queryKeys } from "@/constants/queryKeys";
 import { listarCompras } from "@/service/compras.service";
 import { useRealtime } from "@/hooks/useRealtime";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
-type Periodo = "diario" | "semanal" | "mensal" | "anual";
+type Periodo =
+  | "diario"
+  | "semanal"
+  | "mensal"
+  | "anual";
 
-export const Route = createFileRoute("/_authenticated/financeiro")({
+export const Route = createFileRoute(
+  "/_authenticated/financeiro"
+)({
   component: FinanceiroPage,
 });
 
-function bucketKey(d: string, p: Periodo) {
-  const dt = new Date(d + "T00:00:00");
+function bucketKey(
+  d: string,
+  p: Periodo
+) {
+  const dt = new Date(
+    d + "T00:00:00"
+  );
 
   if (p === "diario") {
-    return dt.toISOString().slice(0, 10);
+    return dt
+      .toISOString()
+      .slice(0, 10);
   }
 
   if (p === "anual") {
-    return String(dt.getFullYear());
+    return String(
+      dt.getFullYear()
+    );
   }
 
   if (p === "semanal") {
-    const onejan = new Date(dt.getFullYear(), 0, 1);
-
-    const week = Math.ceil(
-      ((dt.getTime() - onejan.getTime()) / 86400000 +
-        onejan.getDay() +
-        1) /
-      7
+    const onejan = new Date(
+      dt.getFullYear(),
+      0,
+      1
     );
 
-    return `${dt.getFullYear()}-S${String(week).padStart(2, "0")}`;
+    const week = Math.ceil(
+      (
+        (dt.getTime() -
+          onejan.getTime()) /
+          86400000 +
+        onejan.getDay() +
+        1
+      ) / 7
+    );
+
+    return `${dt.getFullYear()}-S${String(
+      week
+    ).padStart(2, "0")}`;
   }
 
-  return dt.toLocaleDateString("pt-BR", {
-    month: "short",
-    year: "2-digit",
-  });
+  return dt.toLocaleDateString(
+    "pt-BR",
+    {
+      month: "short",
+      year: "2-digit",
+    }
+  );
 }
 
 function FinanceiroPage() {
-  useRealtime(["movimentacoes", "compras"]);
+  useRealtime([
+    "movimentacoes",
+    "compras",
+  ]);
 
-  const [periodo, setPeriodo] =
-    useState<Periodo>("mensal");
+  const { empresaId } =
+    useEmpresa();
+
+  const [
+    periodo,
+    setPeriodo,
+  ] =
+    useState<Periodo>(
+      "mensal"
+    );
 
   // MOVIMENTAÇÕES FINANCEIRAS
-  const { data: mov = [] } = useQuery({
-    queryKey: queryKeys.movimentacoes.all,
-    queryFn: listarMovimentacoes,
+  // Ainda será migrado para empresa em etapa própria.
+  const {
+    data: mov = [],
+  } = useQuery({
+    queryKey:
+      queryKeys.movimentacoes.all,
+
+    queryFn:
+      listarMovimentacoes,
   });
 
   // COMPRAS
-  const { data: compras = [] } = useQuery({
-    queryKey: queryKeys.compras.all,
-    queryFn: listarCompras,
+  const comprasQ = useQuery({
+    queryKey:
+      queryKeys.compras.empresa(
+        empresaId
+      ),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarCompras(
+        empresaId
+      );
+    },
+
+    enabled: !!empresaId,
   });
+
+  const compras =
+    comprasQ.data ?? [];
 
   // KPIs DE CAIXA
   const k = useMemo(() => {
     const ent = mov.reduce(
-      (s, m) => s + Number(m.entrada ?? 0),
+      (s, m) =>
+        s +
+        Number(
+          m.entrada ?? 0
+        ),
       0
     );
 
     const sai = mov.reduce(
-      (s, m) => s + Number(m.saida ?? 0),
+      (s, m) =>
+        s +
+        Number(
+          m.saida ?? 0
+        ),
       0
     );
 
@@ -88,40 +180,65 @@ function FinanceiroPage() {
   }, [mov]);
 
   // CONTAS A PAGAR
-  const comprasFinanceiro = useMemo(() => {
-    const pendentes = compras.filter(
-      (compra) =>
-        compra.forma_pagamento === "a_prazo" &&
-        compra.status_pagamento !== "pago"
-    );
+  const comprasFinanceiro =
+    useMemo(() => {
+      const pendentes =
+        compras.filter(
+          (compra) =>
+            compra.forma_pagamento ===
+              "a_prazo" &&
+            compra.status_pagamento !==
+              "pago"
+        );
 
-    const valorPendente = pendentes.reduce(
-      (total, compra) =>
-        total + Number(compra.custo_total ?? 0),
-      0
-    );
+      const valorPendente =
+        pendentes.reduce(
+          (
+            total,
+            compra
+          ) =>
+            total +
+            Number(
+              compra.custo_total ??
+                0
+            ),
+          0
+        );
 
-    const hoje = todayISO();
+      const hoje =
+        todayISO();
 
-    const vencidas = pendentes.filter(
-      (compra) =>
-        !!compra.data_vencimento &&
-        compra.data_vencimento < hoje
-    );
+      const vencidas =
+        pendentes.filter(
+          (compra) =>
+            !!compra.data_vencimento &&
+            compra.data_vencimento <
+              hoje
+        );
 
-    const valorVencido = vencidas.reduce(
-      (total, compra) =>
-        total + Number(compra.custo_total ?? 0),
-      0
-    );
+      const valorVencido =
+        vencidas.reduce(
+          (
+            total,
+            compra
+          ) =>
+            total +
+            Number(
+              compra.custo_total ??
+                0
+            ),
+          0
+        );
 
-    return {
-      pendentes: pendentes.length,
-      valorPendente,
-      vencidas: vencidas.length,
-      valorVencido,
-    };
-  }, [compras]);
+      return {
+        pendentes:
+          pendentes.length,
+        valorPendente,
+        vencidas:
+          vencidas.length,
+        valorVencido,
+      };
+    }, [compras]);
 
   // GRÁFICO DE FLUXO DE CAIXA
   const series = useMemo(() => {
@@ -136,63 +253,120 @@ function FinanceiroPage() {
     >();
 
     for (const m of mov) {
-      if (!m.data) continue;
+      if (!m.data) {
+        continue;
+      }
 
-      const chave = bucketKey(m.data, periodo);
+      const chave =
+        bucketKey(
+          m.data,
+          periodo
+        );
 
-      const atual = map.get(chave) ?? {
-        label: chave,
-        entradas: 0,
-        saidas: 0,
-        saldo: 0,
-      };
+      const atual =
+        map.get(chave) ?? {
+          label: chave,
+          entradas: 0,
+          saidas: 0,
+          saldo: 0,
+        };
 
-      atual.entradas += Number(m.entrada ?? 0);
-      atual.saidas += Number(m.saida ?? 0);
+      atual.entradas +=
+        Number(
+          m.entrada ?? 0
+        );
 
-      map.set(chave, atual);
+      atual.saidas +=
+        Number(
+          m.saida ?? 0
+        );
+
+      map.set(
+        chave,
+        atual
+      );
     }
 
     let acumulado = 0;
 
-    const arr = Array.from(map.values());
+    const arr =
+      Array.from(
+        map.values()
+      );
 
-    for (const item of arr) {
-      acumulado += item.entradas - item.saidas;
-      item.saldo = acumulado;
+    for (
+      const item
+      of arr
+    ) {
+      acumulado +=
+        item.entradas -
+        item.saidas;
+
+      item.saldo =
+        acumulado;
     }
 
     return arr;
   }, [mov, periodo]);
 
   // TOP SAÍDAS
-  const categorias = useMemo(() => {
-    const map = new Map<string, number>();
+  const categorias =
+    useMemo(() => {
+      const map =
+        new Map<
+          string,
+          number
+        >();
 
-    for (const m of mov) {
-      const saida = Number(m.saida ?? 0);
+      for (
+        const m
+        of mov
+      ) {
+        const saida =
+          Number(
+            m.saida ?? 0
+          );
 
-      if (saida <= 0) continue;
+        if (saida <= 0) {
+          continue;
+        }
 
-      const categoria =
-        (m.categoria ?? "Outros").trim() || "Outros";
+        const categoria =
+          (
+            m.categoria ??
+            "Outros"
+          ).trim() ||
+          "Outros";
 
-      map.set(
-        categoria,
-        (map.get(categoria) ?? 0) + saida
-      );
-    }
+        map.set(
+          categoria,
+          (
+            map.get(
+              categoria
+            ) ?? 0
+          ) + saida
+        );
+      }
 
-    return Array.from(
-      map,
-      ([categoria, valor]) => ({
-        categoria,
-        valor,
-      })
-    )
-      .sort((a, b) => b.valor - a.valor)
-      .slice(0, 10);
-  }, [mov]);
+      return Array.from(
+        map,
+        (
+          [
+            categoria,
+            valor,
+          ]
+        ) => ({
+          categoria,
+          valor,
+        })
+      )
+        .sort(
+          (a, b) =>
+            b.valor -
+            a.valor
+        )
+        .slice(0, 10);
+    }, [mov]);
 
   return (
     <AppShell
@@ -241,7 +415,8 @@ function FinanceiroPage() {
           )}
           icon={TrendingDown}
           tone={
-            comprasFinanceiro.valorVencido > 0
+            comprasFinanceiro.valorVencido >
+            0
               ? "destructive"
               : "default"
           }
@@ -254,8 +429,12 @@ function FinanceiroPage() {
         actions={
           <Tabs
             value={periodo}
-            onValueChange={(v) =>
-              setPeriodo(v as Periodo)
+            onValueChange={(
+              v
+            ) =>
+              setPeriodo(
+                v as Periodo
+              )
             }
           >
             <TabsList>
@@ -280,7 +459,9 @@ function FinanceiroPage() {
       >
         <div className="h-80">
           <ResponsiveContainer>
-            <AreaChart data={series}>
+            <AreaChart
+              data={series}
+            >
               <defs>
                 <linearGradient
                   id="gEnt"
@@ -292,13 +473,17 @@ function FinanceiroPage() {
                   <stop
                     offset="0%"
                     stopColor="var(--color-chart-2)"
-                    stopOpacity={0.35}
+                    stopOpacity={
+                      0.35
+                    }
                   />
 
                   <stop
                     offset="100%"
                     stopColor="var(--color-chart-2)"
-                    stopOpacity={0}
+                    stopOpacity={
+                      0
+                    }
                   />
                 </linearGradient>
 
@@ -312,13 +497,17 @@ function FinanceiroPage() {
                   <stop
                     offset="0%"
                     stopColor="var(--color-chart-5)"
-                    stopOpacity={0.35}
+                    stopOpacity={
+                      0.35
+                    }
                   />
 
                   <stop
                     offset="100%"
                     stopColor="var(--color-chart-5)"
-                    stopOpacity={0}
+                    stopOpacity={
+                      0
+                    }
                   />
                 </linearGradient>
               </defs>
@@ -334,14 +523,20 @@ function FinanceiroPage() {
               />
 
               <YAxis
-                tickFormatter={(v) =>
-                  `R$${Math.round(v)}`
+                tickFormatter={(
+                  v
+                ) =>
+                  `R$${Math.round(
+                    v
+                  )}`
                 }
                 fontSize={11}
               />
 
               <Tooltip
-                formatter={(v: number) => brl(v)}
+                formatter={(
+                  v: number
+                ) => brl(v)}
                 contentStyle={{
                   borderRadius: 8,
                   border:
@@ -375,7 +570,9 @@ function FinanceiroPage() {
                 name="Saldo"
                 stroke="var(--color-chart-3)"
                 fill="transparent"
-                strokeWidth={2.5}
+                strokeWidth={
+                  2.5
+                }
               />
             </AreaChart>
           </ResponsiveContainer>
@@ -387,9 +584,13 @@ function FinanceiroPage() {
           <div className="h-72">
             <ResponsiveContainer>
               <BarChart
-                data={categorias}
+                data={
+                  categorias
+                }
                 layout="vertical"
-                margin={{ left: 20 }}
+                margin={{
+                  left: 20,
+                }}
               >
                 <CartesianGrid
                   strokeDasharray="3 3"
@@ -398,8 +599,12 @@ function FinanceiroPage() {
 
                 <XAxis
                   type="number"
-                  tickFormatter={(v) =>
-                    `R$${Math.round(v)}`
+                  tickFormatter={(
+                    v
+                  ) =>
+                    `R$${Math.round(
+                      v
+                    )}`
                   }
                   fontSize={11}
                 />
@@ -409,15 +614,24 @@ function FinanceiroPage() {
                   dataKey="categoria"
                   width={160}
                   fontSize={10}
-                  tickFormatter={(s) =>
-                    s.length > 22
-                      ? s.slice(0, 22) + "…"
+                  tickFormatter={(
+                    s
+                  ) =>
+                    s.length >
+                    22
+                      ? s.slice(
+                          0,
+                          22
+                        ) +
+                        "…"
                       : s
                   }
                 />
 
                 <Tooltip
-                  formatter={(v: number) =>
+                  formatter={(
+                    v: number
+                  ) =>
                     brl(v)
                   }
                   contentStyle={{
@@ -431,7 +645,12 @@ function FinanceiroPage() {
                   dataKey="valor"
                   name="Saída"
                   fill="var(--color-chart-5)"
-                  radius={[0, 6, 6, 0]}
+                  radius={[
+                    0,
+                    6,
+                    6,
+                    0,
+                  ]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -443,70 +662,118 @@ function FinanceiroPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead>Categoria</TableHead>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="text-right">Entrada</TableHead>
-                  <TableHead className="text-right">Saída</TableHead>
+                  <TableHead>
+                    Data
+                  </TableHead>
+
+                  <TableHead>
+                    Tipo
+                  </TableHead>
+
+                  <TableHead>
+                    Categoria
+                  </TableHead>
+
+                  <TableHead>
+                    Descrição
+                  </TableHead>
+
+                  <TableHead className="text-right">
+                    Entrada
+                  </TableHead>
+
+                  <TableHead className="text-right">
+                    Saída
+                  </TableHead>
                 </TableRow>
               </TableHeader>
 
               <TableBody>
                 {[...mov]
                   .reverse()
-                  .slice(0, 100)
-                  .map((m) => {
-                    const tipo = m.tipo ?? "outros";
+                  .slice(
+                    0,
+                    100
+                  )
+                  .map(
+                    (m) => {
+                      const tipo =
+                        m.tipo ??
+                        "outros";
 
-                    return (
-                      <TableRow key={m.id}>
-                        <TableCell>
-                          {dateBR(m.data)}
-                        </TableCell>
+                      return (
+                        <TableRow
+                          key={
+                            m.id
+                          }
+                        >
+                          <TableCell>
+                            {dateBR(
+                              m.data
+                            )}
+                          </TableCell>
 
-                        <TableCell>
-                          {tipo === "venda" ? (
-                            <Badge variant="default">
-                              Venda
-                            </Badge>
-                          ) : tipo === "compra" ? (
-                            <Badge variant="outline">
-                              Compra
-                            </Badge>
-                          ) : tipo === "despesa" ? (
-                            <Badge variant="outline">
-                              Despesa
-                            </Badge>
-                          ) : (
-                            <Badge variant="outline">
-                              Outros
-                            </Badge>
-                          )}
-                        </TableCell>
+                          <TableCell>
+                            {tipo ===
+                            "venda" ? (
+                              <Badge variant="default">
+                                Venda
+                              </Badge>
+                            ) : tipo ===
+                              "compra" ? (
+                              <Badge variant="outline">
+                                Compra
+                              </Badge>
+                            ) : tipo ===
+                              "despesa" ? (
+                              <Badge variant="outline">
+                                Despesa
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline">
+                                Outros
+                              </Badge>
+                            )}
+                          </TableCell>
 
-                        <TableCell>
-                          {m.categoria ?? "Outros"}
-                        </TableCell>
+                          <TableCell>
+                            {m.categoria ??
+                              "Outros"}
+                          </TableCell>
 
-                        <TableCell className="max-w-xs truncate">
-                          {m.descricao}
-                        </TableCell>
+                          <TableCell className="max-w-xs truncate">
+                            {
+                              m.descricao
+                            }
+                          </TableCell>
 
-                        <TableCell className="text-right text-success">
-                          {Number(m.entrada) > 0
-                            ? brl(Number(m.entrada))
-                            : "—"}
-                        </TableCell>
+                          <TableCell className="text-right text-success">
+                            {Number(
+                              m.entrada
+                            ) > 0
+                              ? brl(
+                                  Number(
+                                    m.entrada
+                                  )
+                                )
+                              : "—"}
+                          </TableCell>
 
-                        <TableCell className="text-right text-destructive">
-                          {Number(m.saida) > 0
-                            ? brl(Number(m.saida))
-                            : "—"}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          <TableCell className="text-right text-destructive">
+                            {Number(
+                              m.saida
+                            ) > 0
+                              ? brl(
+                                  Number(
+                                    m.saida
+                                  )
+                                )
+                              : "—"}
+                          </TableCell>
+                        </TableRow>
+                      );
+                    }
+                  )}
               </TableBody>
             </Table>
           </div>

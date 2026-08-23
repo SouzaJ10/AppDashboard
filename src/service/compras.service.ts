@@ -1,13 +1,16 @@
 import { supabase } from "@/integrations/supabase/client";
 import type { FormaPagamento } from "@/types/domain";
 
-export async function listarCompras() {
+export async function listarCompras(empresaId: string) {
     const { data, error } = await supabase
         .from("compras")
         .select("*")
+        .eq("empresa_id", empresaId)
         .order("data", { ascending: false });
 
-    if (error) throw error;
+    if (error) {
+        throw error;
+    }
 
     return data ?? [];
 }
@@ -31,10 +34,13 @@ export async function pagarCompra(id: string) {
     }
 }
 
-export async function listarProdutosParaCompra() {
+export async function listarProdutosParaCompra(
+    empresaId: string
+) {
     const { data, error } = await supabase
         .from("produtos")
         .select("*")
+        .eq("empresa_id", empresaId)
         .order("descricao");
 
     if (error) throw error;
@@ -69,16 +75,4 @@ export async function registrarCompra(input: RegistrarCompraInput) {
     }
 
     return data as string;
-}
-
-async function buscarProdutoParaCompra(id: string) {
-    const { data, error } = await supabase
-        .from("produtos")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-    if (error) throw error;
-
-    return data;
 }

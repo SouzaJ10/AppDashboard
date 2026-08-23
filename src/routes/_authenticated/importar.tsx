@@ -441,14 +441,59 @@ function ImportarPage() {
         else if (kind === "movimentacoes") {
           const rows = sheet.rows.map((r) => {
             const data = excelDateToISO(pick(r, "data"));
-            if (!data) { skipped++; return null; }
+
+            if (!data) {
+              skipped++;
+              return null;
+            }
+
+            const tipoValor = str(pick(r, "tipo"));
+
+            if (!tipoValor) {
+              skipped++;
+
+              errors.push(
+                "Tipo de movimentação não informado. Use venda, compra, despesa ou saldo_inicial."
+              );
+
+              return null;
+            }
+
+            const tipoRaw = tipoValor
+              .trim()
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[\s-]+/g, "_");
+
+            const tiposPermitidos = [
+              "venda",
+              "compra",
+              "despesa",
+              "saldo_inicial",
+            ];
+
+            if (!tiposPermitidos.includes(tipoRaw)) {
+              skipped++;
+
+              errors.push(
+                `Tipo de movimentação inválido: "${String(
+                  pick(r, "tipo") ?? ""
+                )}". Use venda, compra, despesa ou saldo_inicial.`
+              );
+
+              return null;
+            }
+
             return {
               data,
               entrada: num(pick(r, "entrada")),
               saida: num(pick(r, "saida")),
               descricao: str(pick(r, "descricao")),
+              tipo: tipoRaw,
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);
+
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("movimentacoes").insert(rows.slice(i, i + 500));
             if (error) {

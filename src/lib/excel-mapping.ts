@@ -250,7 +250,7 @@ export const FIELD_SYNONYMS: Record<
       "historico",
       "histórico",
       "categoria",
-      "tipo",
+      "memo",
     ],
   },
 };
@@ -271,6 +271,7 @@ export const REQUIRED_FIELDS: Record<SheetKind, string[]> = {
 
   movimentacoes: [
     "data",
+    "tipo",
   ],
 };
 

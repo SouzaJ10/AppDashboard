@@ -56,13 +56,10 @@ export async function pagarDespesa(
             p_descricao: despesa.descricao,
             p_valor: Number(despesa.valor),
             p_data: data,
-            p_categoria: despesa.categoria ?? null,
-            p_forma_pagamento:
-                despesa.forma_pagamento ?? null,
-            p_centro_custo:
-                despesa.centro_custo ?? null,
-            p_observacoes:
-                despesa.observacoes ?? null,
+            p_categoria: despesa.categoria ?? undefined,
+            p_forma_pagamento: despesa.forma_pagamento ?? undefined,
+            p_centro_custo: despesa.centro_custo ?? undefined,
+            p_observacoes: despesa.observacoes ?? undefined,
             p_status: "pago",
         }
     );
@@ -116,10 +113,10 @@ export async function registrarDespesa(
             p_descricao: input.descricao,
             p_valor: input.valor,
             p_data: input.data,
-            p_categoria: input.categoria,
-            p_forma_pagamento: input.formaPagamento,
-            p_centro_custo: input.centroCusto,
-            p_observacoes: input.observacoes,
+            p_categoria: input.categoria ?? undefined,
+            p_forma_pagamento: input.formaPagamento ?? undefined,
+            p_centro_custo: input.centroCusto ?? undefined,
+            p_observacoes: input.observacoes ?? undefined,
             p_status: input.status,
         }
     );
@@ -140,10 +137,10 @@ export async function atualizarDespesa(
             p_descricao: input.descricao,
             p_valor: input.valor,
             p_data: input.data,
-            p_categoria: input.categoria,
-            p_forma_pagamento: input.formaPagamento,
-            p_centro_custo: input.centroCusto,
-            p_observacoes: input.observacoes,
+            p_categoria: input.categoria ?? undefined,
+            p_forma_pagamento: input.formaPagamento ?? undefined,
+            p_centro_custo: input.centroCusto ?? undefined,
+            p_observacoes: input.observacoes ?? undefined,
             p_status: input.status,
         }
     );

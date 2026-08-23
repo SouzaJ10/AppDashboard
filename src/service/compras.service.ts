@@ -58,10 +58,10 @@ export async function registrarCompra(input: RegistrarCompraInput) {
         p_produto_id: input.produtoId,
         p_quantidade: input.quantidade,
         p_custo_unitario: input.custoUnitario,
-        p_fornecedor: input.fornecedor ?? null,
+        p_fornecedor: input.fornecedor,
         p_data: input.data,
         p_forma_pagamento: input.formaPagamento ?? "a_vista",
-        p_data_vencimento: input.dataVencimento ?? null,
+        p_data_vencimento: input.dataVencimento,
     });
 
     if (error) {

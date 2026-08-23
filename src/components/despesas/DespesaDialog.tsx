@@ -13,6 +13,7 @@ import type { StatusDespesa } from "@/types/domain";
 import { queryKeys } from "@/constants/queryKeys";
 import { todayISO } from "@/lib/format";
 import { atualizarDespesa, criarCategoriaDespesa, listarCategoriasDespesa, registrarDespesa, } from "@/service/despesas.service";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 type Props = {
   despesa?: Despesa;
@@ -24,6 +25,7 @@ export function DespesaDialog({
   trigger,
 }: Props) {
   const qc = useQueryClient();
+  const { empresaId } = useEmpresa();
 
   const isEdit = !!despesa;
 
@@ -31,8 +33,22 @@ export function DespesaDialog({
   const [saving, setSaving] = useState(false);
 
   const catsQ = useQuery({
-    queryKey: queryKeys.categoriasDespesa.all,
-    queryFn: listarCategoriasDespesa,
+    queryKey:
+      queryKeys.categoriasDespesa.empresa(
+        empresaId
+      ),
+
+    queryFn: async () => {
+      if (!empresaId) {
+        return [];
+      }
+
+      return listarCategoriasDespesa(
+        empresaId
+      );
+    },
+
+    enabled: open && !!empresaId,
   });
 
   const categorias = (() => {
@@ -166,8 +182,17 @@ export function DespesaDialog({
       categoria =
         form.novaCategoria.trim();
 
+      if (!empresaId) {
+        return toast.error(
+          "Nenhuma empresa selecionada."
+        );
+      }
+
       try {
-        await criarCategoriaDespesa(categoria);
+        await criarCategoriaDespesa(
+          categoria,
+          empresaId
+        );
       } catch (e) {
         console.error(
           "Erro ao criar categoria de despesa:",

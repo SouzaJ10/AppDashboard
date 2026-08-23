@@ -66,10 +66,13 @@ export async function pagarDespesa(
     }
 }
 
-export async function listarCategoriasDespesa() {
+export async function listarCategoriasDespesa(
+    empresaId: string
+) {
     const { data, error } = await supabase
         .from("categorias_despesa")
         .select("*")
+        .eq("empresa_id", empresaId)
         .order("nome");
 
     if (error) {
@@ -79,22 +82,27 @@ export async function listarCategoriasDespesa() {
     return data ?? [];
 }
 
-export async function criarCategoriaDespesa(nome: string) {
+export async function criarCategoriaDespesa(
+    nome: string,
+    empresaId: string
+) {
     const { error } = await supabase
         .from("categorias_despesa")
         .insert({
             nome,
+            empresa_id: empresaId,
         });
 
     if (!error) {
         return;
     }
 
-    const message = error.message.toLowerCase();
+    const mensagem =
+        error.message.toLowerCase();
 
     const categoriaDuplicada =
-        message.includes("duplicate") ||
-        message.includes("unique");
+        mensagem.includes("duplicate") ||
+        mensagem.includes("unique");
 
     if (!categoriaDuplicada) {
         throw error;

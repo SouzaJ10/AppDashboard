@@ -1,12 +1,28 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger, DialogFooter, } from "@/components/ui/dialog";
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogTrigger,
+    DialogFooter,
+} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
 import { Plus, Loader2 } from "lucide-react";
-import { listarProdutosParaCompra, registrarCompra, } from "@/service/compras.service";
+import {
+    listarProdutosParaCompra,
+    registrarCompra,
+} from "@/service/compras.service";
 import { queryKeys } from "@/constants/queryKeys";
 import { toast } from "sonner";
 import type { FormaPagamento } from "@/types/domain";
@@ -14,6 +30,8 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function NovaCompraDialog() {
     const qc = useQueryClient();
+
+    const { empresaId } = useEmpresa();
 
     const [open, setOpen] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -23,7 +41,6 @@ export function NovaCompraDialog() {
     const [custoUnitario, setCustoUnitario] = useState("");
     const [fornecedor, setFornecedor] = useState("");
     const [dataVencimento, setDataVencimento] = useState("");
-    const { empresaId } = useEmpresa();
 
     const [formaPagamento, setFormaPagamento] =
         useState<FormaPagamento>("a_vista");
@@ -43,11 +60,17 @@ export function NovaCompraDialog() {
     });
 
     useEffect(() => {
-        if (!produtoId) return;
+        if (!produtoId) {
+            return;
+        }
 
-        const produto = produtos.find((p) => p.id === produtoId);
+        const produto = produtos.find(
+            (p) => p.id === produtoId
+        );
 
-        const custo = Number(produto?.custo_compra ?? 0);
+        const custo = Number(
+            produto?.custo_compra ?? 0
+        );
 
         if (custo > 0) {
             setCustoUnitario(String(custo));
@@ -68,24 +91,41 @@ export function NovaCompraDialog() {
     };
 
     const onSave = async () => {
-        const produto = produtos.find((p) => p.id === produtoId);
+        if (!empresaId) {
+            return toast.error(
+                "Nenhuma empresa selecionada."
+            );
+        }
+
+        const produto = produtos.find(
+            (p) => p.id === produtoId
+        );
 
         if (!produto) {
-            return toast.error("Selecione um produto");
+            return toast.error(
+                "Selecione um produto"
+            );
         }
 
         const qtd = Number(quantidade);
         const custo = Number(custoUnitario);
 
         if (!qtd || qtd <= 0) {
-            return toast.error("Quantidade inválida");
+            return toast.error(
+                "Quantidade inválida"
+            );
         }
 
         if (!custo || custo <= 0) {
-            return toast.error("Custo unitário inválido");
+            return toast.error(
+                "Custo unitário inválido"
+            );
         }
 
-        if (formaPagamento === "a_prazo" && !dataVencimento) {
+        if (
+            formaPagamento === "a_prazo" &&
+            !dataVencimento
+        ) {
             return toast.error(
                 "Informe a data de vencimento da compra a prazo"
             );
@@ -94,43 +134,56 @@ export function NovaCompraDialog() {
         setSaving(true);
 
         try {
-            await registrarCompra({
-                produtoId: produto.id,
-                quantidade: qtd,
-                custoUnitario: custo,
-                fornecedor: fornecedor.trim() || undefined,
-                formaPagamento,
-                dataVencimento:
-                    formaPagamento === "a_prazo"
-                        ? dataVencimento
-                        : undefined,
-            });
+            await registrarCompra(
+                {
+                    produtoId: produto.id,
+                    quantidade: qtd,
+                    custoUnitario: custo,
+                    fornecedor:
+                        fornecedor.trim() || undefined,
+                    formaPagamento,
+                    dataVencimento:
+                        formaPagamento === "a_prazo"
+                            ? dataVencimento
+                            : undefined,
+                },
+                empresaId
+            );
 
-            toast.success("Compra registrada com sucesso!");
+            toast.success(
+                "Compra registrada com sucesso!"
+            );
 
             await Promise.all([
                 qc.invalidateQueries({
                     queryKey: queryKeys.produtos.all,
                 }),
+
                 qc.invalidateQueries({
                     queryKey: queryKeys.compras.all,
                 }),
+
                 qc.invalidateQueries({
-                    queryKey: queryKeys.movimentacoes.all,
+                    queryKey:
+                        queryKeys.movimentacoes.all,
                 }),
             ]);
 
             reset();
             setOpen(false);
         } catch (e) {
-            console.error("Erro ao registrar compra:", e);
+            console.error(
+                "Erro ao registrar compra:",
+                e
+            );
 
             const message =
                 e instanceof Error
                     ? e.message
                     : "Ocorreu um erro inesperado.";
 
-            const normalized = message.toLowerCase();
+            const normalized =
+                message.toLowerCase();
 
             if (
                 normalized.includes("vencimento") &&
@@ -142,19 +195,26 @@ export function NovaCompraDialog() {
                         description: message,
                     }
                 );
+
                 return;
             }
 
-            toast.error("Erro ao registrar compra", {
-                description: message,
-            });
+            toast.error(
+                "Erro ao registrar compra",
+                {
+                    description: message,
+                }
+            );
         } finally {
             setSaving(false);
         }
     };
 
     return (
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog
+            open={open}
+            onOpenChange={setOpen}
+        >
             <DialogTrigger asChild>
                 <Button>
                     <Plus className="mr-1 h-4 w-4" />
@@ -164,7 +224,9 @@ export function NovaCompraDialog() {
 
             <DialogContent className="max-w-lg">
                 <DialogHeader>
-                    <DialogTitle>Registrar nova compra</DialogTitle>
+                    <DialogTitle>
+                        Registrar nova compra
+                    </DialogTitle>
                 </DialogHeader>
 
                 <div className="grid gap-4">
@@ -181,8 +243,12 @@ export function NovaCompraDialog() {
 
                             <SelectContent>
                                 {produtos.map((p) => (
-                                    <SelectItem key={p.id} value={p.id}>
-                                        {p.descricao} (código: {p.codigo})
+                                    <SelectItem
+                                        key={p.id}
+                                        value={p.id}
+                                    >
+                                        {p.descricao} (código:{" "}
+                                        {p.codigo})
                                     </SelectItem>
                                 ))}
                             </SelectContent>
@@ -191,20 +257,26 @@ export function NovaCompraDialog() {
 
                     <div className="grid grid-cols-2 gap-3">
                         <div>
-                            <Label>Quantidade</Label>
+                            <Label>
+                                Quantidade
+                            </Label>
 
                             <Input
                                 type="number"
                                 min="1"
                                 value={quantidade}
                                 onChange={(e) =>
-                                    setQuantidade(e.target.value)
+                                    setQuantidade(
+                                        e.target.value
+                                    )
                                 }
                             />
                         </div>
 
                         <div>
-                            <Label>Custo unitário (R$)</Label>
+                            <Label>
+                                Custo unitário (R$)
+                            </Label>
 
                             <Input
                                 type="number"
@@ -212,7 +284,9 @@ export function NovaCompraDialog() {
                                 step="0.01"
                                 value={custoUnitario}
                                 onChange={(e) =>
-                                    setCustoUnitario(e.target.value)
+                                    setCustoUnitario(
+                                        e.target.value
+                                    )
                                 }
                             />
                         </div>
@@ -225,33 +299,44 @@ export function NovaCompraDialog() {
                             </span>
 
                             <span className="text-lg font-semibold">
-                                {totalCompra.toLocaleString("pt-BR", {
-                                    style: "currency",
-                                    currency: "BRL",
-                                })}
+                                {totalCompra.toLocaleString(
+                                    "pt-BR",
+                                    {
+                                        style: "currency",
+                                        currency: "BRL",
+                                    }
+                                )}
                             </span>
                         </div>
                     </div>
 
                     <div>
-                        <Label>Fornecedor</Label>
+                        <Label>
+                            Fornecedor
+                        </Label>
 
                         <Input
                             placeholder="Fornecedor (opcional)"
                             value={fornecedor}
                             onChange={(e) =>
-                                setFornecedor(e.target.value)
+                                setFornecedor(
+                                    e.target.value
+                                )
                             }
                         />
                     </div>
 
                     <div>
-                        <Label>Forma de pagamento</Label>
+                        <Label>
+                            Forma de pagamento
+                        </Label>
 
                         <Select
                             value={formaPagamento}
                             onValueChange={(value) =>
-                                setFormaPagamento(value as FormaPagamento)
+                                setFormaPagamento(
+                                    value as FormaPagamento
+                                )
                             }
                         >
                             <SelectTrigger>
@@ -270,35 +355,46 @@ export function NovaCompraDialog() {
                         </Select>
                     </div>
 
-                    {formaPagamento === "a_prazo" && (
-                        <div>
-                            <Label>Data de vencimento *</Label>
+                    {formaPagamento ===
+                        "a_prazo" && (
+                            <div>
+                                <Label>
+                                    Data de vencimento *
+                                </Label>
 
-                            <Input
-                                type="date"
-                                value={dataVencimento}
-                                onChange={(e) =>
-                                    setDataVencimento(e.target.value)
-                                }
-                            />
+                                <Input
+                                    type="date"
+                                    value={dataVencimento}
+                                    onChange={(e) =>
+                                        setDataVencimento(
+                                            e.target.value
+                                        )
+                                    }
+                                />
 
-                            <p className="mt-1 text-xs text-muted-foreground">
-                                A compra ficará pendente até ser paga.
-                            </p>
-                        </div>
-                    )}
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    A compra ficará
+                                    pendente até ser paga.
+                                </p>
+                            </div>
+                        )}
                 </div>
 
                 <DialogFooter>
                     <Button
                         variant="ghost"
-                        onClick={() => setOpen(false)}
+                        onClick={() =>
+                            setOpen(false)
+                        }
                         disabled={saving}
                     >
                         Cancelar
                     </Button>
 
-                    <Button onClick={onSave} disabled={saving}>
+                    <Button
+                        onClick={onSave}
+                        disabled={saving}
+                    >
                         {saving && (
                             <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                         )}

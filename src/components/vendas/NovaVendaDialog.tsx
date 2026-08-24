@@ -16,6 +16,9 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export function NovaVendaDialog() {
   const qc = useQueryClient();
+
+  const { empresaId } = useEmpresa();
+
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -26,7 +29,6 @@ export function NovaVendaDialog() {
   const [frete, setFrete] = useState("0");
   const [cliente, setCliente] = useState("");
   const [obs, setObs] = useState("");
-  const { empresaId } = useEmpresa();
 
   const { data: produtos = [] } = useQuery({
     queryKey: queryKeys.produtos.listaEmpresa(empresaId),
@@ -44,129 +46,336 @@ export function NovaVendaDialog() {
 
   // Auto-preenche o valor unitário com o preço cadastrado do produto.
   useEffect(() => {
-    if (!produtoId) return;
-    const p = produtos.find((x) => x.id === produtoId);
-    const preco = Number(p?.preco_venda ?? 0);
-    if (preco > 0) setValorUnit(String(preco));
+    if (!produtoId) {
+      return;
+    }
+
+    const produto = produtos.find(
+      (item) => item.id === produtoId
+    );
+
+    const preco = Number(
+      produto?.preco_venda ?? 0
+    );
+
+    if (preco > 0) {
+      setValorUnit(String(preco));
+    }
   }, [produtoId, produtos]);
 
   const reset = () => {
-    setProdutoId(""); setQtd("1"); setValorUnit(""); setDesconto("0");
-    setFrete("0"); setCliente(""); setObs("");
+    setProdutoId("");
+    setQtd("1");
+    setValorUnit("");
+    setDesconto("0");
+    setFrete("0");
+    setCliente("");
+    setObs("");
   };
 
   const onSave = async () => {
-    const produto = produtos.find((p) => p.id === produtoId);
-    if (!produto) return toast.error("Selecione um produto");
-    if (produto.ativo === false) return toast.error("Produto inativo — não é possível vender");
+    if (!empresaId) {
+      return toast.error(
+        "Nenhuma empresa selecionada."
+      );
+    }
+
+    const produto = produtos.find(
+      (p) => p.id === produtoId
+    );
+
+    if (!produto) {
+      return toast.error(
+        "Selecione um produto"
+      );
+    }
+
+    if (produto.ativo === false) {
+      return toast.error(
+        "Produto inativo — não é possível vender"
+      );
+    }
+
     const q = Number(qtd);
     const vu = Number(valorUnit);
     const desc = Number(desconto) || 0;
     const fr = Number(frete) || 0;
+
     if (desc < 0) {
-      return toast.error("Desconto não pode ser negativo");
+      return toast.error(
+        "Desconto não pode ser negativo"
+      );
     }
 
     if (fr < 0) {
-      return toast.error("Frete não pode ser negativo");
+      return toast.error(
+        "Frete não pode ser negativo"
+      );
     }
 
     if (desc >= vu * q) {
-      return toast.error("Desconto inválido", {
-        description: "O desconto deve ser menor que o valor total da venda.",
-      });
+      return toast.error(
+        "Desconto inválido",
+        {
+          description:
+            "O desconto deve ser menor que o valor total da venda.",
+        }
+      );
     }
 
-    if (!q || q <= 0) return toast.error("Quantidade inválida");
-    if (!vu || vu <= 0) return toast.error("Valor unitário inválido");
-    if (Number(produto.estoque_atual ?? 0) < q) {
-      return toast.error("Estoque insuficiente", {
-        description: `Disponível: ${produto.estoque_atual} un.`,
-      });
+    if (!q || q <= 0) {
+      return toast.error(
+        "Quantidade inválida"
+      );
+    }
+
+    if (!vu || vu <= 0) {
+      return toast.error(
+        "Valor unitário inválido"
+      );
+    }
+
+    if (
+      Number(
+        produto.estoque_atual ?? 0
+      ) < q
+    ) {
+      return toast.error(
+        "Estoque insuficiente",
+        {
+          description: `Disponível: ${produto.estoque_atual} un.`,
+        }
+      );
     }
 
     setSaving(true);
-    try {
-      await registrarVenda({
-        produtoId: produto.id,
-        quantidade: q,
-        valorUnitario: vu,
-        desconto: desc,
-        frete: fr,
-        cliente,
-        observacoes: obs,
-      });
 
-      toast.success("Venda registrada com sucesso!");
+    try {
+      await registrarVenda(
+        {
+          produtoId: produto.id,
+          quantidade: q,
+          valorUnitario: vu,
+          desconto: desc,
+          frete: fr,
+          cliente,
+          observacoes: obs,
+        },
+        empresaId
+      );
+
+      toast.success(
+        "Venda registrada com sucesso!"
+      );
+
       await Promise.all([
-        qc.invalidateQueries({ queryKey: queryKeys.vendas.all }),
-        qc.invalidateQueries({ queryKey: queryKeys.produtos.all }),
-        qc.invalidateQueries({ queryKey: queryKeys.movimentacoes.all }),
+        qc.invalidateQueries({
+          queryKey: queryKeys.vendas.all,
+        }),
+
+        qc.invalidateQueries({
+          queryKey: queryKeys.produtos.all,
+        }),
+
+        qc.invalidateQueries({
+          queryKey:
+            queryKeys.movimentacoes.all,
+        }),
       ]);
+
       reset();
       setOpen(false);
     } catch (e: any) {
-      console.error("Erro ao registrar venda:", e);
+      console.error(
+        "Erro ao registrar venda:",
+        e
+      );
 
-      toast.error("Erro ao salvar venda", {
-        description: e?.message ?? e?.error_description ??
-          "Ocorreu um erro inesperado.",
-      });
+      toast.error(
+        "Erro ao salvar venda",
+        {
+          description:
+            e?.message ??
+            e?.error_description ??
+            "Ocorreu um erro inesperado.",
+        }
+      );
+    } finally {
+      setSaving(false);
     }
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog
+      open={open}
+      onOpenChange={setOpen}
+    >
       <DialogTrigger asChild>
-        <Button><Plus className="mr-1 h-4 w-4" /> Nova Venda</Button>
+        <Button>
+          <Plus className="mr-1 h-4 w-4" />
+          Nova Venda
+        </Button>
       </DialogTrigger>
+
       <DialogContent className="max-w-lg">
-        <DialogHeader><DialogTitle>Registrar nova venda</DialogTitle></DialogHeader>
+        <DialogHeader>
+          <DialogTitle>
+            Registrar nova venda
+          </DialogTitle>
+        </DialogHeader>
+
         <div className="grid gap-3">
           <div>
             <Label>Produto</Label>
-            <Select value={produtoId} onValueChange={setProdutoId}>
-              <SelectTrigger><SelectValue placeholder="Selecione um produto" /></SelectTrigger>
+
+            <Select
+              value={produtoId}
+              onValueChange={setProdutoId}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Selecione um produto" />
+              </SelectTrigger>
+
               <SelectContent>
                 {produtos.map((p) => (
-                  <SelectItem key={p.id} value={p.id}>
-                    {p.descricao} <span className="text-muted-foreground">(estoque: {p.estoque_atual})</span>
+                  <SelectItem
+                    key={p.id}
+                    value={p.id}
+                  >
+                    {p.descricao}{" "}
+                    <span className="text-muted-foreground">
+                      (estoque:{" "}
+                      {p.estoque_atual})
+                    </span>
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
+
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <Label>Quantidade</Label>
-              <Input type="number" min="1" value={qtd} onChange={(e) => setQtd(e.target.value)} />
+              <Label>
+                Quantidade
+              </Label>
+
+              <Input
+                type="number"
+                min="1"
+                value={qtd}
+                onChange={(e) =>
+                  setQtd(
+                    e.target.value
+                  )
+                }
+              />
             </div>
+
             <div>
-              <Label>Valor unitário (R$)</Label>
-              <Input type="number" step="0.01" value={valorUnit} onChange={(e) => setValorUnit(e.target.value)} />
+              <Label>
+                Valor unitário (R$)
+              </Label>
+
+              <Input
+                type="number"
+                step="0.01"
+                value={valorUnit}
+                onChange={(e) =>
+                  setValorUnit(
+                    e.target.value
+                  )
+                }
+              />
             </div>
+
             <div>
-              <Label>Desconto (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={desconto} onChange={(e) => setDesconto(e.target.value)} />
+              <Label>
+                Desconto (R$)
+              </Label>
+
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={desconto}
+                onChange={(e) =>
+                  setDesconto(
+                    e.target.value
+                  )
+                }
+              />
             </div>
+
             <div>
-              <Label>Frete (R$)</Label>
-              <Input type="number" min="0" step="0.01" value={frete} onChange={(e) => setFrete(e.target.value)} />
+              <Label>
+                Frete (R$)
+              </Label>
+
+              <Input
+                type="number"
+                min="0"
+                step="0.01"
+                value={frete}
+                onChange={(e) =>
+                  setFrete(
+                    e.target.value
+                  )
+                }
+              />
             </div>
           </div>
+
           <div>
-            <Label>Cliente (opcional)</Label>
-            <Input value={cliente} onChange={(e) => setCliente(e.target.value)} />
+            <Label>
+              Cliente (opcional)
+            </Label>
+
+            <Input
+              value={cliente}
+              onChange={(e) =>
+                setCliente(
+                  e.target.value
+                )
+              }
+            />
           </div>
+
           <div>
-            <Label>Observações</Label>
-            <Textarea rows={2} value={obs} onChange={(e) => setObs(e.target.value)} />
+            <Label>
+              Observações
+            </Label>
+
+            <Textarea
+              rows={2}
+              value={obs}
+              onChange={(e) =>
+                setObs(
+                  e.target.value
+                )
+              }
+            />
           </div>
         </div>
+
         <DialogFooter>
-          <Button variant="ghost" onClick={() => setOpen(false)} disabled={saving}>Cancelar</Button>
-          <Button onClick={onSave} disabled={saving}>
-            {saving && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+          <Button
+            variant="ghost"
+            onClick={() =>
+              setOpen(false)
+            }
+            disabled={saving}
+          >
+            Cancelar
+          </Button>
+
+          <Button
+            onClick={onSave}
+            disabled={saving}
+          >
+            {saving && (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            )}
+
             Salvar venda
           </Button>
         </DialogFooter>

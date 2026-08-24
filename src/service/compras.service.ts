@@ -59,8 +59,12 @@ type RegistrarCompraInput = {
 
 };
 
-export async function registrarCompra(input: RegistrarCompraInput) {
+export async function registrarCompra(
+    input: RegistrarCompraInput,
+    empresaId: string
+) {
     const { data, error } = await supabase.rpc("registrar_compra", {
+        p_empresa_id: empresaId,
         p_produto_id: input.produtoId,
         p_quantidade: input.quantidade,
         p_custo_unitario: input.custoUnitario,

@@ -495,6 +495,7 @@ export type Database = {
           p_custo_unitario: number
           p_data?: string
           p_data_vencimento?: string
+          p_empresa_id: string
           p_forma_pagamento?: string
           p_fornecedor?: string
           p_produto_id: string
@@ -519,6 +520,7 @@ export type Database = {
         Args: {
           p_cliente?: string
           p_desconto?: number
+          p_empresa_id: string
           p_frete?: number
           p_observacoes?: string
           p_produto_id: string

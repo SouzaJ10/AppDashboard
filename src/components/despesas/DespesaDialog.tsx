@@ -231,19 +231,28 @@ export function DespesaDialog({
 
         toast.success("Despesa atualizada");
       } else {
-        await registrarDespesa({
-          descricao: form.descricao.trim(),
-          valor,
-          data: form.data,
-          categoria: categoria || null,
-          formaPagamento:
-            form.forma_pagamento || null,
-          centroCusto:
-            form.centro_custo.trim() || null,
-          observacoes:
-            form.observacoes.trim() || null,
-          status: form.status,
-        });
+        if (!empresaId) {
+          return toast.error(
+            "Nenhuma empresa selecionada."
+          );
+        }
+
+        await registrarDespesa(
+          {
+            descricao: form.descricao.trim(),
+            valor: Number(form.valor),
+            data: form.data,
+            categoria,
+            formaPagamento:
+              form.forma_pagamento || null,
+            centroCusto:
+              form.centro_custo.trim() || null,
+            observacoes:
+              form.observacoes.trim() || null,
+            status: form.status,
+          },
+          empresaId
+        );
 
         toast.success("Despesa registrada");
       }

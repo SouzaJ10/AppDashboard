@@ -110,18 +110,24 @@ export async function criarCategoriaDespesa(
 }
 
 export async function registrarDespesa(
-    input: SalvarDespesaInput
+    input: SalvarDespesaInput,
+    empresaId: string
 ) {
     const { error } = await supabase.rpc(
         "registrar_despesa",
         {
+            p_empresa_id: empresaId,
             p_descricao: input.descricao,
             p_valor: input.valor,
             p_data: input.data,
-            p_categoria: input.categoria ?? undefined,
-            p_forma_pagamento: input.formaPagamento ?? undefined,
-            p_centro_custo: input.centroCusto ?? undefined,
-            p_observacoes: input.observacoes ?? undefined,
+            p_categoria:
+                input.categoria ?? undefined,
+            p_forma_pagamento:
+                input.formaPagamento ?? undefined,
+            p_centro_custo:
+                input.centroCusto ?? undefined,
+            p_observacoes:
+                input.observacoes ?? undefined,
             p_status: input.status,
         }
     );

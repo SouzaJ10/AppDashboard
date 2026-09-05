@@ -115,6 +115,7 @@ export const FIELD_SYNONYMS: Record<
   compras: {
     codigo: [
       "codigo",
+      "data",
       "código",
       "cod",
       "sku",
@@ -159,6 +160,12 @@ export const FIELD_SYNONYMS: Record<
       "date",
       "data compra",
       "dt",
+    ],
+
+    fornecedor: [
+      "fornecedor",
+      "supplier",
+      "vendor",
     ],
   },
 

@@ -344,24 +344,66 @@ function ImportarPage() {
               );
             codeToId = produtos.codeToId;
           }
-          const rows = sheet.rows.map((r) => {
-            const cod = pick(r, "codigo")
-              ? String(pick(r, "codigo")).trim()
-              : null; if (!cod) { skipped++; return null; }
-            const q = num(pick(r, "quantidade"));
-            const cu = num(pick(r, "custo_unitario"));
-            return {
-              empresa_id: empresaId,
-              produto_id: cod ? codeToId.get(cod) ?? null : null,
-              codigo: cod,
-              descricao: str(pick(r, "descricao")),
-              fornecedor: str(pick(r, "fornecedor")) ?? "Importação",
-              quantidade: q,
-              custo_unitario: cu,
-              custo_total: num(pick(r, "custo_total")) || q * cu,
-              data: excelDateToISO(pick(r, "data")),
-            };
-          }).filter((x): x is NonNullable<typeof x> => !!x);
+          const rows = sheet.rows
+            .map((r) => {
+              const cod = pick(r, "codigo")
+                ? String(
+                  pick(r, "codigo")
+                ).trim()
+                : null;
+
+              if (!cod) {
+                skipped++;
+                return null;
+              }
+
+              const data = excelDateToISO(
+                pick(r, "data")
+              );
+
+              if (!data) {
+                skipped++;
+                return null;
+              }
+
+              const q = num(
+                pick(r, "quantidade")
+              );
+
+              const cu = num(
+                pick(r, "custo_unitario")
+              );
+
+              return {
+                empresa_id: empresaId,
+                produto_id:
+                  codeToId.get(cod) ??
+                  null,
+                codigo: cod,
+                descricao: str(
+                  pick(r, "descricao")
+                ),
+                fornecedor:
+                  str(
+                    pick(r, "fornecedor")
+                  ) ?? "Importação",
+                quantidade: q,
+                custo_unitario: cu,
+                custo_total:
+                  num(
+                    pick(r, "custo_total")
+                  ) ||
+                  q * cu,
+                data,
+              };
+            })
+            .filter(
+              (
+                x
+              ): x is NonNullable<
+                typeof x
+              > => !!x
+            );
           for (let i = 0; i < rows.length; i += 500) {
             const { error } = await supabase.from("compras").insert(rows.slice(i, i + 500));
             if (error) {

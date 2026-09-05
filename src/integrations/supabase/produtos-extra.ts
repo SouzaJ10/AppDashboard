@@ -1,6 +1,6 @@
 export type ProdutoFull = {
   id: string;
-  empresa_id: string | null;
+  empresa_id: string;
   codigo: string;
   descricao: string;
   estoque_atual: number;

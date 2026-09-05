@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useProdutos } from "@/hooks/useProdutos";
 import { useQueryClient } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
-import { excluirProduto, } from "@/service/produto.service";
+import { excluirProduto } from "@/service/produto.service";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
 import { ProdutoDialog } from "@/components/produtos/ProdutoDialog";
@@ -15,6 +15,7 @@ import { EstoqueResumo } from "@/components/estoque/EstoqueResumo";
 import { EstoqueFiltros } from "@/components/estoque/EstoqueFiltros";
 import { TabelaProdutos } from "@/components/estoque/TabelaProdutos";
 import { DetalhesProduto } from "@/components/estoque/DetalhesProduto";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -22,6 +23,7 @@ function EstoquePage() {
   useRealtime(["produtos", "vendas"]);
 
   const qc = useQueryClient();
+  const { empresaId } = useEmpresa();
 
   const [q, setQ] = useState("");
   const [categoria, setCategoria] = useState("__all");
@@ -138,17 +140,30 @@ function EstoquePage() {
   const empty = !isLoading && produtos.length === 0;
 
   const onDelete = async (p: ProdutoFull) => {
-    try {
-      await excluirProduto(p.id);
+    if (!empresaId) {
+      return toast.error(
+        "Nenhuma empresa selecionada."
+      );
+    }
 
-      toast.success("Produto excluído");
+    try {
+      await excluirProduto(
+        p.id,
+        empresaId
+      );
+
+      toast.success(
+        "Produto excluído"
+      );
 
       await qc.invalidateQueries({
         queryKey: queryKeys.produtos.all,
       });
     } catch (e) {
       toast.error(
-        e instanceof Error ? e.message : "Erro ao excluir produto"
+        e instanceof Error
+          ? e.message
+          : "Erro ao excluir produto"
       );
     }
   };

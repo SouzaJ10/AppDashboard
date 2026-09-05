@@ -2,7 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import * as XLSX from "xlsx";
 import { supabase } from "@/integrations/supabase/client";
-import { useUserRole } from "@/hooks/useAuth";
+import { useEmpresa } from "@/contexts/EmpresaContext";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section } from "@/components/dashboard/KpiCard";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,15 @@ import { type SheetKind, FIELD_SYNONYMS, REQUIRED_FIELDS, detectSheetKind, autoM
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/constants/queryKeys";
 
-async function carregarProdutos() {
+async function carregarProdutos(
+  empresaId: string
+) {
   const { data, error } = await supabase
     .from("produtos")
-    .select("id,codigo,descricao,custo_compra");
+    .select(
+      "id,codigo,descricao,custo_compra"
+    )
+    .eq("empresa_id", empresaId);
 
   if (error) throw error;
 
@@ -77,6 +82,7 @@ function localizarProduto(
 ) {
   if (codigo) {
     const id = codeToId.get(codigo);
+
     if (id) {
       return {
         produto_id: id,
@@ -85,10 +91,16 @@ function localizarProduto(
       };
     }
   }
+
   const nomeNormalizado = nome
     .trim()
     .toLowerCase();
-  if (ambiguousNames.has(nomeNormalizado)) {
+
+  if (
+    ambiguousNames.has(
+      nomeNormalizado
+    )
+  ) {
     return {
       produto_id: null,
       codigo: codigo ?? "",
@@ -96,17 +108,28 @@ function localizarProduto(
     };
   }
 
-  const id = nameToId.get(nomeNormalizado);
+  const id =
+    nameToId.get(
+      nomeNormalizado
+    );
+
   if (id) {
     return {
       produto_id: id,
-      codigo: nameToCode.get(nomeNormalizado) ?? codigo ?? "",
+      codigo:
+        nameToCode.get(
+          nomeNormalizado
+        ) ??
+        codigo ??
+        "",
       ambiguous: false,
     };
   }
+
   return {
     produto_id: null,
     codigo: codigo ?? "",
+    ambiguous: false,
   };
 }
 
@@ -152,10 +175,9 @@ const str = (v: unknown): string | null => (v == null || v === "" ? null : Strin
 
 function ImportarPage() {
   const qc = useQueryClient();
-  const { isAdmin } = useUserRole();
+  const { empresaId, isAdmin } = useEmpresa();
   const [file, setFile] = useState<File | null>(null);
   const [sheets, setSheets] = useState<SheetInfo[]>([]);
-  const [wipeBeforeImport, setWipeBeforeImport] = useState(false);
   const [running, setRunning] = useState(false);
   const [progress, setProgress] = useState(0);
   const [step, setStep] = useState("");
@@ -188,46 +210,53 @@ function ImportarPage() {
       arr.map((s, idx) => (idx === i ? { ...s, mapping: { ...s.mapping, [field]: header } } : s))
     );
 
-  const ready = useMemo(
-    () => sheets.some((s) => s.enabled && s.kind && missingRequired(s.kind, s.mapping).length === 0),
-    [sheets],
-  );
+  const ready = useMemo(() => {
+    const enabledSheets =
+      sheets.filter(
+        (sheet) =>
+          sheet.enabled &&
+          sheet.kind
+      );
+
+    return (
+      enabledSheets.length > 0 &&
+      enabledSheets.every(
+        (sheet) =>
+          missingRequired(
+            sheet.kind as SheetKind,
+            sheet.mapping
+          ).length === 0
+      )
+    );
+  }, [sheets]);
 
   const doImport = async () => {
+    if (!empresaId) {
+      toast.error(
+        "Nenhuma empresa selecionada."
+      );
+      return;
+    }
+
     setRunning(true); setProgress(0); setReport(null);
     const rep: { kind: SheetKind; ok: number; skipped: number; errors: string[] }[] = [];
     try {
-      // 1. (opcional) limpar
-      if (wipeBeforeImport) {
-        setStep("Limpando dados anteriores...");
+      // Importar estoque primeiro para resolver produto_id
+      const enabled = sheets.filter(
+        (s) => s.enabled && s.kind
+      );
 
-        for (const t of [
-          "vendas",
-          "compras",
-          "movimentacoes",
-          "produtos",
-        ] as const) {
-          const { error } = await supabase
-            .from(t)
-            .delete()
-            .neq(
-              "id",
-              "00000000-0000-0000-0000-000000000000"
-            );
+      const order: SheetKind[] = [
+        "estoque",
+        "compras",
+        "vendas",
+        "movimentacoes",
+      ];
 
-          if (error) {
-            throw new Error(
-              `Falha ao limpar ${t}: ${error.message}`
-            );
-          }
-        }
-      }
-
-      // 2. importar estoque primeiro (para produto_id)
-      const enabled = sheets.filter((s) => s.enabled && s.kind);
-      const order: SheetKind[] = ["estoque", "compras", "vendas", "movimentacoes"];
       const sortedSheets = [...enabled].sort(
-        (a, b) => order.indexOf(a.kind as SheetKind) - order.indexOf(b.kind as SheetKind),
+        (a, b) =>
+          order.indexOf(a.kind as SheetKind) -
+          order.indexOf(b.kind as SheetKind),
       );
 
       let codeToId = new Map<string, string>();
@@ -263,6 +292,7 @@ function ImportarPage() {
               const precoVenda = pick(r, "preco_venda");
 
               return {
+                empresa_id: empresaId,
                 codigo: cod,
                 descricao: desc,
 
@@ -286,17 +316,32 @@ function ImportarPage() {
             .filter((x): x is NonNullable<typeof x> => !!x);
 
           for (let i = 0; i < rows.length; i += 500) {
-            const { error } = await supabase.from("produtos").upsert(rows.slice(i, i + 500), { onConflict: "codigo" });
+            const { error } = await supabase
+              .from("produtos")
+              .upsert(
+                rows.slice(i, i + 500),
+                {
+                  onConflict:
+                    "empresa_id,codigo",
+                }
+              );
             if (error) {
               errors.push(error.message); break;
             }
             ok += Math.min(500, rows.length - i);
           }
-          const { data: pmap = [] } = await supabase.from("produtos").select("id,codigo");
+          const { data: pmap = [] } =
+            await supabase
+              .from("produtos")
+              .select("id,codigo")
+              .eq("empresa_id", empresaId);
           codeToId = new Map((pmap ?? []).map((p) => [String(p.codigo), p.id]));
         } else if (kind === "compras") {
           if (codeToId.size === 0) {
-            const produtos = await carregarProdutos();
+            const produtos =
+              await carregarProdutos(
+                empresaId
+              );
             codeToId = produtos.codeToId;
           }
           const rows = sheet.rows.map((r) => {
@@ -306,6 +351,7 @@ function ImportarPage() {
             const q = num(pick(r, "quantidade"));
             const cu = num(pick(r, "custo_unitario"));
             return {
+              empresa_id: empresaId,
               produto_id: cod ? codeToId.get(cod) ?? null : null,
               codigo: cod,
               descricao: str(pick(r, "descricao")),
@@ -324,7 +370,10 @@ function ImportarPage() {
             ok += Math.min(500, rows.length - i);
           }
         } else if (kind === "vendas") {
-          const produtos = await carregarProdutos();
+          const produtos =
+            await carregarProdutos(
+              empresaId
+            );
 
           codeToId = produtos.codeToId;
           nameToId = produtos.nameToId;
@@ -405,6 +454,7 @@ function ImportarPage() {
                 ? lucroInformado
                 : precoTotal - custo - desp;
             return {
+              empresa_id: empresaId,
               produto_id: produto.produto_id,
               codigo: produto.codigo,
               descricao: str(
@@ -486,6 +536,7 @@ function ImportarPage() {
             }
 
             return {
+              empresa_id: empresaId,
               data,
               entrada: num(pick(r, "entrada")),
               saida: num(pick(r, "saida")),
@@ -518,7 +569,10 @@ function ImportarPage() {
           );
         }
 
-        const produtos = await carregarProdutos();
+        const produtos =
+          await carregarProdutos(
+            empresaId
+          );
 
         codeToId = produtos.codeToId;
         nameToId = produtos.nameToId;
@@ -590,10 +644,6 @@ function ImportarPage() {
               </div>
             )}
           </div>
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={wipeBeforeImport} onCheckedChange={(v) => setWipeBeforeImport(Boolean(v))} />
-            Limpar dados importáveis antes de importar (substituição dos dados da planilha)
-          </label>
         </div>
       </Section>
 

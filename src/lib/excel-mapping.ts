@@ -1,6 +1,7 @@
 /**
  * Mapeamento flexível de colunas Excel → campos canônicos.
- * Cada campo lista sinônimos aceitos (case-insensitive, sem acento).
+ * Cada campo lista sinônimos aceitos
+ * (case-insensitive e sem acento).
  */
 
 export type SheetKind =
@@ -9,7 +10,10 @@ export type SheetKind =
   | "vendas"
   | "movimentacoes";
 
-export const SHEET_NAME_HINTS: Record<SheetKind, string[]> = {
+export const SHEET_NAME_HINTS: Record<
+  SheetKind,
+  string[]
+> = {
   estoque: [
     "estoque",
     "stock",
@@ -64,6 +68,8 @@ export const FIELD_SYNONYMS: Record<
     ],
 
     estoque_atual: [
+      "estoque_atual",
+      "estoque atual",
       "quantidade",
       "qtd",
       "estoque",
@@ -73,14 +79,19 @@ export const FIELD_SYNONYMS: Record<
     ],
 
     estoque_minimo: [
+      "estoque_minimo",
+      "estoque minimo",
+      "estoque mínimo",
       "minimo",
       "mínimo",
-      "estoque minimo",
       "min",
       "reposicao",
+      "reposição",
     ],
 
     custo_compra: [
+      "custo_compra",
+      "custo compra",
       "custo",
       "custo unit",
       "custo unitario",
@@ -91,6 +102,7 @@ export const FIELD_SYNONYMS: Record<
     ],
 
     preco_venda: [
+      "preco_venda",
       "preco venda",
       "preço venda",
       "preco de venda",
@@ -117,22 +129,25 @@ export const FIELD_SYNONYMS: Record<
     ],
 
     quantidade: [
-      "qtd",
       "quantidade",
+      "qtd",
       "qtde",
       "qty",
     ],
 
     custo_unitario: [
-      "custo unit",
+      "custo_unitario",
       "custo unitario",
       "custo unitário",
+      "custo unit",
       "preco unit",
+      "preço unit",
       "valor unit",
       "unit cost",
     ],
 
     custo_total: [
+      "custo_total",
       "custo total",
       "total",
       "valor total",
@@ -164,29 +179,30 @@ export const FIELD_SYNONYMS: Record<
     ],
 
     quantidade: [
-      "qtd",
       "quantidade",
+      "qtd",
       "qtde",
     ],
 
     valor_unitario: [
-      "preco venda",
-      "preço venda",
-      "preco",
-      "preço",
-      "preço unit.",
-      "preco unit.",
-      "preço unitario",
-      "preco unitario",
-      "preço unitário",
-      "valor unit",
+      "valor_unitario",
       "valor unitario",
       "valor unitário",
+      "preco unitario",
+      "preço unitário",
+      "preco unit.",
+      "preço unit.",
+      "preco",
+      "preço",
+      "valor unit",
       "unitario",
       "unitário",
     ],
 
     preco_venda: [
+      "preco_venda",
+      "preco venda",
+      "preço venda",
       "total",
       "valor total",
       "total venda",
@@ -227,6 +243,15 @@ export const FIELD_SYNONYMS: Record<
       "dt",
     ],
 
+    tipo: [
+      "tipo",
+      "type",
+      "natureza",
+      "movimento",
+      "movimentacao",
+      "movimentação",
+    ],
+
     entrada: [
       "entrada",
       "credito",
@@ -255,7 +280,10 @@ export const FIELD_SYNONYMS: Record<
   },
 };
 
-export const REQUIRED_FIELDS: Record<SheetKind, string[]> = {
+export const REQUIRED_FIELDS: Record<
+  SheetKind,
+  string[]
+> = {
   estoque: [
     "codigo",
     "descricao",
@@ -277,12 +305,18 @@ export const REQUIRED_FIELDS: Record<SheetKind, string[]> = {
 
 /**
  * Normaliza string:
- * minúscula, sem acento, trim, sem caracteres especiais
+ * minúscula, sem acento, trim
+ * e sem separadores especiais.
  */
-export const normalize = (s: string): string =>
-  String(s)
+export const normalize = (
+  value: string
+): string =>
+  String(value)
     .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
+    .replace(
+      /[\u0300-\u036f]/g,
+      ""
+    )
     .toLowerCase()
     .trim()
     .replace(/[._\-/]+/g, " ")
@@ -296,16 +330,22 @@ export function detectSheetKind(
   sheetName: string,
   headers: string[]
 ): SheetKind | null {
-  const n = normalize(sheetName);
+  const normalizedName =
+    normalize(sheetName);
 
   for (
     const [kind, hints] of Object.entries(
       SHEET_NAME_HINTS
-    ) as [SheetKind, string[]][]
+    ) as [
+      SheetKind,
+      string[],
+    ][]
   ) {
     if (
-      hints.some((h) =>
-        n.includes(h)
+      hints.some((hint) =>
+        normalizedName.includes(
+          normalize(hint)
+        )
       )
     ) {
       return kind;
@@ -313,28 +353,35 @@ export function detectSheetKind(
   }
 
   // fallback: por colunas presentes
-  const heads = headers.map(normalize);
+  const normalizedHeaders =
+    headers.map(normalize);
 
-  const score = (kind: SheetKind) => {
-    let s = 0;
+  const score = (
+    kind: SheetKind
+  ) => {
+    let total = 0;
 
     for (
-      const syns of Object.values(
+      const synonyms of Object.values(
         FIELD_SYNONYMS[kind]
       )
     ) {
       if (
-        heads.some((h) =>
-          syns.some((syn) =>
-            h.includes(normalize(syn))
-          )
+        normalizedHeaders.some(
+          (header) =>
+            synonyms.some(
+              (synonym) =>
+                header.includes(
+                  normalize(synonym)
+                )
+            )
         )
       ) {
-        s++;
+        total++;
       }
     }
 
-    return s;
+    return total;
   };
 
   const ranked = (
@@ -343,8 +390,11 @@ export function detectSheetKind(
     ) as SheetKind[]
   )
     .map(
-      (k) =>
-        [k, score(k)] as const
+      (kind) =>
+        [
+          kind,
+          score(kind),
+        ] as const
     )
     .sort(
       (a, b) =>
@@ -363,43 +413,59 @@ export function detectSheetKind(
 export function autoMap(
   kind: SheetKind,
   headers: string[]
-): Record<string, string | null> {
+): Record<
+  string,
+  string | null
+> {
   const out: Record<
     string,
     string | null
   > = {};
 
-  const normHeaders = headers.map(
-    (h) => ({
-      orig: h,
-      norm: normalize(h),
-    })
-  );
+  const normalizedHeaders =
+    headers.map((header) => ({
+      orig: header,
+      norm: normalize(header),
+    }));
 
   for (
-    const [field, syns] of Object.entries(
+    const [
+      field,
+      synonyms,
+    ] of Object.entries(
       FIELD_SYNONYMS[kind]
     )
   ) {
-    const normalizedSyns =
-      syns.map(normalize);
+    const normalizedSynonyms =
+      synonyms.map(normalize);
 
-    const match =
-      normHeaders.find((h) =>
-        normalizedSyns.some(
-          (s) =>
-            h.norm === s
-        )
-      ) ||
-      normHeaders.find((h) =>
-        normalizedSyns.some(
-          (s) =>
-            h.norm.includes(s)
-        )
+    // Primeiro procura igualdade exata.
+    const exactMatch =
+      normalizedHeaders.find(
+        (header) =>
+          normalizedSynonyms.some(
+            (synonym) =>
+              header.norm ===
+              synonym
+          )
+      );
+
+    // Só depois tenta correspondência parcial.
+    const partialMatch =
+      exactMatch ??
+      normalizedHeaders.find(
+        (header) =>
+          normalizedSynonyms.some(
+            (synonym) =>
+              header.norm.includes(
+                synonym
+              )
+          )
       );
 
     out[field] =
-      match?.orig ?? null;
+      partialMatch?.orig ??
+      null;
   }
 
   return out;
@@ -419,6 +485,7 @@ export function missingRequired(
   return REQUIRED_FIELDS[
     kind
   ].filter(
-    (f) => !mapping[f]
+    (field) =>
+      !mapping[field]
   );
 }

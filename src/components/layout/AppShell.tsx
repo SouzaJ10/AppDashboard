@@ -1,44 +1,12 @@
-import {
-  Link,
-  useRouter,
-  useRouterState,
-} from "@tanstack/react-router";
-import {
-  useState,
-  type ReactNode,
-} from "react";
-import {
-  LayoutDashboard,
-  ShoppingCart,
-  Package,
-  Wallet,
-  Calculator,
-  Sparkles,
-  Upload,
-  LogOut,
-  Menu,
-  X,
-  Shield,
-  LineChart,
-  TrendingDown,
-  Receipt,
-  Truck,
-  Building2,
-} from "lucide-react";
-
+import { Link, useRouter, useRouterState, } from "@tanstack/react-router";
+import { useState, type ReactNode, } from "react";
+import { LayoutDashboard, ShoppingCart, Package, Wallet, Calculator, Sparkles, Upload, LogOut, Menu, X, Shield, LineChart, TrendingDown, Receipt, Truck, Building2, } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { cn } from "@/lib/utils";
-
 import { Button } from "@/components/ui/button";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue, } from "@/components/ui/select";
 
 type NavItem = {
   to: string;

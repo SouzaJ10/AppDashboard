@@ -115,7 +115,6 @@ export const FIELD_SYNONYMS: Record<
   compras: {
     codigo: [
       "codigo",
-      "data",
       "código",
       "cod",
       "sku",
@@ -298,6 +297,7 @@ export const REQUIRED_FIELDS: Record<
 
   compras: [
     "codigo",
+    "data",
   ],
 
   vendas: [

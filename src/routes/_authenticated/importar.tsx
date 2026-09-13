@@ -17,6 +17,14 @@ import { FileSpreadsheet, Upload, Loader2, AlertCircle, CheckCircle2 } from "luc
 import { type SheetKind, FIELD_SYNONYMS, REQUIRED_FIELDS, detectSheetKind, autoMap, missingRequired, } from "@/lib/excel-mapping";
 import { useQueryClient } from "@tanstack/react-query";
 import { queryKeys } from "@/constants/queryKeys";
+import {
+  calcularValoresVendaImportada,
+  excelDateToISO,
+  importacaoPronta,
+  localizarProduto,
+  num,
+  str,
+} from "@/lib/importacao";
 
 async function carregarProdutos(
   empresaId: string
@@ -72,67 +80,6 @@ async function carregarProdutos(
   };
 }
 
-function localizarProduto(
-  codigo: string | null,
-  nome: string,
-  codeToId: Map<string, string>,
-  nameToId: Map<string, string>,
-  nameToCode: Map<string, string>,
-  ambiguousNames: Set<string>,
-) {
-  if (codigo) {
-    const id = codeToId.get(codigo);
-
-    if (id) {
-      return {
-        produto_id: id,
-        codigo,
-        ambiguous: false,
-      };
-    }
-  }
-
-  const nomeNormalizado = nome
-    .trim()
-    .toLowerCase();
-
-  if (
-    ambiguousNames.has(
-      nomeNormalizado
-    )
-  ) {
-    return {
-      produto_id: null,
-      codigo: codigo ?? "",
-      ambiguous: true,
-    };
-  }
-
-  const id =
-    nameToId.get(
-      nomeNormalizado
-    );
-
-  if (id) {
-    return {
-      produto_id: id,
-      codigo:
-        nameToCode.get(
-          nomeNormalizado
-        ) ??
-        codigo ??
-        "",
-      ambiguous: false,
-    };
-  }
-
-  return {
-    produto_id: null,
-    codigo: codigo ?? "",
-    ambiguous: false,
-  };
-}
-
 export const Route = createFileRoute("/_authenticated/importar")({
   ssr: false,
   beforeLoad: async () => {
@@ -151,27 +98,6 @@ type SheetInfo = {
   mapping: Record<string, string | null>;
   enabled: boolean;
 };
-
-const excelDateToISO = (v: unknown): string | null => {
-  if (!v) return null;
-  if (typeof v === "string") {
-    const d = new Date(v);
-    return isNaN(d.getTime()) ? null : d.toISOString().slice(0, 10);
-  }
-  if (typeof v === "number") {
-    const d = XLSX.SSF.parse_date_code(v);
-    if (!d) return null;
-    return `${d.y}-${String(d.m).padStart(2, "0")}-${String(d.d).padStart(2, "0")}`;
-  }
-  if (v instanceof Date) return v.toISOString().slice(0, 10);
-  return null;
-};
-const num = (v: unknown): number => {
-  if (v == null || v === "") return 0;
-  const n = typeof v === "number" ? v : Number(String(v).replace(/[^\d,.-]/g, "").replace(",", "."));
-  return isFinite(n) ? n : 0;
-};
-const str = (v: unknown): string | null => (v == null || v === "" ? null : String(v).trim());
 
 function ImportarPage() {
   const qc = useQueryClient();
@@ -210,25 +136,10 @@ function ImportarPage() {
       arr.map((s, idx) => (idx === i ? { ...s, mapping: { ...s.mapping, [field]: header } } : s))
     );
 
-  const ready = useMemo(() => {
-    const enabledSheets =
-      sheets.filter(
-        (sheet) =>
-          sheet.enabled &&
-          sheet.kind
-      );
-
-    return (
-      enabledSheets.length > 0 &&
-      enabledSheets.every(
-        (sheet) =>
-          missingRequired(
-            sheet.kind as SheetKind,
-            sheet.mapping
-          ).length === 0
-      )
-    );
-  }, [sheets]);
+  const ready = useMemo(
+    () => importacaoPronta(sheets),
+    [sheets]
+  );
 
   const doImport = async () => {
     if (!empresaId) {
@@ -464,24 +375,16 @@ function ImportarPage() {
               pick(r, "preco_venda")
             );
 
-            const precoTotal =
-              totalInformado > 0
-                ? totalInformado
-                : q * valorUnitario;
-
             const custoInformado = num(
               pick(r, "custo")
             );
 
             const custoUnitarioProduto =
               produto.produto_id
-                ? idToCusto.get(produto.produto_id) ?? 0
+                ? idToCusto.get(
+                  produto.produto_id
+                ) ?? 0
                 : 0;
-
-            const custo =
-              custoInformado > 0
-                ? custoInformado
-                : custoUnitarioProduto * q;
 
             const desp = num(
               pick(r, "despesas")
@@ -491,10 +394,20 @@ function ImportarPage() {
               pick(r, "lucro")
             );
 
-            const lucro =
-              lucroInformado !== 0
-                ? lucroInformado
-                : precoTotal - custo - desp;
+            const {
+              precoTotal,
+              custo,
+              lucro,
+              margem,
+            } = calcularValoresVendaImportada({
+              quantidade: q,
+              valorUnitario,
+              totalInformado,
+              custoInformado,
+              custoUnitarioProduto,
+              despesas: desp,
+              lucroInformado,
+            });
             return {
               empresa_id: empresaId,
               produto_id: produto.produto_id,
@@ -508,10 +421,7 @@ function ImportarPage() {
               custo,
               despesas: desp,
               lucro,
-              margem:
-                precoTotal > 0
-                  ? lucro / precoTotal
-                  : 0,
+              margem,
               data,
             };
           }).filter((x): x is NonNullable<typeof x> => !!x);

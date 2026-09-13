@@ -16,6 +16,10 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { CheckCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
+import {
+    classificarVencimento,
+    type StatusVencimento,
+} from "@/lib/vencimentos";
 
 export const Route = createFileRoute("/_authenticated/compras")({
     component: ComprasPage,
@@ -34,6 +38,15 @@ function ComprasPage() {
 
     const [aba, setAba] =
         useState<AbaCompras>("historico");
+
+    const [
+        vencimentoFiltro,
+        setVencimentoFiltro,
+    ] = useState<
+        "__all__" | StatusVencimento
+    >("__all__");
+
+    const hoje = todayISO();
 
     const fornecedores = useMemo(() => {
         const set = new Set<string>();
@@ -221,6 +234,84 @@ function ComprasPage() {
         );
     }, [contasAPagar]);
 
+    const contasComVencimento = useMemo(() => {
+        return contasAPagar.map((compra) => ({
+            ...compra,
+
+            statusVencimento:
+                classificarVencimento({
+                    dataVencimento:
+                        compra.data_vencimento,
+                    hoje,
+                }),
+        }));
+    }, [contasAPagar, hoje]);
+
+    const resumoVencimentos = useMemo(() => {
+        const vencidas =
+            contasComVencimento.filter(
+                (compra) =>
+                    compra.statusVencimento ===
+                    "vencida"
+            );
+
+        const vencendoEm7Dias =
+            contasComVencimento.filter(
+                (compra) =>
+                    compra.statusVencimento ===
+                    "hoje" ||
+                    compra.statusVencimento ===
+                    "proximos_7_dias"
+            );
+
+        const valorVencido =
+            vencidas.reduce(
+                (total, compra) =>
+                    total +
+                    Number(
+                        compra.custo_total ?? 0
+                    ),
+                0
+            );
+
+        const valorVencendoEm7Dias =
+            vencendoEm7Dias.reduce(
+                (total, compra) =>
+                    total +
+                    Number(
+                        compra.custo_total ?? 0
+                    ),
+                0
+            );
+
+        return {
+            vencidas: vencidas.length,
+            valorVencido,
+
+            vencendoEm7Dias:
+                vencendoEm7Dias.length,
+
+            valorVencendoEm7Dias,
+        };
+    }, [contasComVencimento]);
+
+    const contasFiltradas = useMemo(() => {
+        if (
+            vencimentoFiltro === "__all__"
+        ) {
+            return contasComVencimento;
+        }
+
+        return contasComVencimento.filter(
+            (compra) =>
+                compra.statusVencimento ===
+                vencimentoFiltro
+        );
+    }, [
+        contasComVencimento,
+        vencimentoFiltro,
+    ]);
+
     const brl = (value: number) =>
         value.toLocaleString("pt-BR", {
             style: "currency",
@@ -236,8 +327,6 @@ function ComprasPage() {
             `${value}T00:00:00`
         ).toLocaleDateString("pt-BR");
     };
-
-    const hoje = todayISO();
 
     const empty =
         !isLoading && compras.length === 0;
@@ -795,7 +884,7 @@ function ComprasPage() {
 
                 {aba === "contas" && (
                     <div className="space-y-4">
-                        <div className="grid gap-4 sm:grid-cols-2">
+                        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
                             <div className="rounded-xl border bg-card p-4">
                                 <p className="text-sm text-muted-foreground">
                                     Contas pendentes
@@ -815,6 +904,84 @@ function ComprasPage() {
                                     {brl(valorAPagar)}
                                 </p>
                             </div>
+
+                            <div className="rounded-xl border bg-card p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Vencidas
+                                </p>
+
+                                <p className="mt-1 text-2xl font-semibold text-destructive">
+                                    {resumoVencimentos.vencidas}
+                                </p>
+
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {brl(
+                                        resumoVencimentos.valorVencido
+                                    )}
+                                </p>
+                            </div>
+
+                            <div className="rounded-xl border bg-card p-4">
+                                <p className="text-sm text-muted-foreground">
+                                    Vencendo em 7 dias
+                                </p>
+
+                                <p className="mt-1 text-2xl font-semibold">
+                                    {
+                                        resumoVencimentos.vencendoEm7Dias
+                                    }
+                                </p>
+
+                                <p className="mt-1 text-xs text-muted-foreground">
+                                    {brl(
+                                        resumoVencimentos
+                                            .valorVencendoEm7Dias
+                                    )}
+                                </p>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2">
+                            <Select
+                                value={vencimentoFiltro}
+                                onValueChange={(value) =>
+                                    setVencimentoFiltro(
+                                        value as
+                                        | "__all__"
+                                        | StatusVencimento
+                                    )
+                                }
+                            >
+                                <SelectTrigger className="w-56">
+                                    <SelectValue placeholder="Vencimento" />
+                                </SelectTrigger>
+
+                                <SelectContent>
+                                    <SelectItem value="__all__">
+                                        Todos os vencimentos
+                                    </SelectItem>
+
+                                    <SelectItem value="vencida">
+                                        Vencidas
+                                    </SelectItem>
+
+                                    <SelectItem value="hoje">
+                                        Vence hoje
+                                    </SelectItem>
+
+                                    <SelectItem value="proximos_7_dias">
+                                        Próximos 7 dias
+                                    </SelectItem>
+
+                                    <SelectItem value="futura">
+                                        Futuras
+                                    </SelectItem>
+
+                                    <SelectItem value="sem_vencimento">
+                                        Sem vencimento
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
                         </div>
 
                         {contasAPagar.length === 0 ? (
@@ -826,6 +993,17 @@ function ComprasPage() {
                                 <p className="mt-1 text-sm text-muted-foreground">
                                     Todas as compras a prazo estão
                                     pagas.
+                                </p>
+                            </div>
+                        ) : contasFiltradas.length === 0 ? (
+                            <div className="rounded-lg border border-dashed p-8 text-center">
+                                <p className="font-medium">
+                                    Nenhuma conta encontrada
+                                </p>
+
+                                <p className="mt-1 text-sm text-muted-foreground">
+                                    Não existem contas com essa
+                                    situação de vencimento.
                                 </p>
                             </div>
                         ) : (
@@ -860,23 +1038,8 @@ function ComprasPage() {
                                     </thead>
 
                                     <tbody>
-                                        {contasAPagar.map(
+                                        {contasFiltradas.map(
                                             (compra) => {
-                                                const vencimento =
-                                                    compra.data_vencimento ??
-                                                    "";
-
-                                                const vencida =
-                                                    Boolean(
-                                                        vencimento
-                                                    ) &&
-                                                    vencimento <
-                                                    hoje;
-
-                                                const venceHoje =
-                                                    vencimento ===
-                                                    hoje;
-
                                                 return (
                                                     <tr
                                                         key={
@@ -901,21 +1064,32 @@ function ComprasPage() {
                                                         </td>
 
                                                         <td className="px-3 py-3">
-                                                            {vencida ? (
+                                                            {compra.statusVencimento ===
+                                                                "vencida" ? (
                                                                 <Badge
                                                                     variant="outline"
                                                                     className="border-destructive/40 text-destructive"
                                                                 >
                                                                     Vencida
                                                                 </Badge>
-                                                            ) : venceHoje ? (
+                                                            ) : compra.statusVencimento ===
+                                                                "hoje" ? (
                                                                 <Badge variant="outline">
-                                                                    Vence
-                                                                    hoje
+                                                                    Vence hoje
+                                                                </Badge>
+                                                            ) : compra.statusVencimento ===
+                                                                "proximos_7_dias" ? (
+                                                                <Badge variant="outline">
+                                                                    Próx. 7 dias
+                                                                </Badge>
+                                                            ) : compra.statusVencimento ===
+                                                                "futura" ? (
+                                                                <Badge variant="outline">
+                                                                    Futura
                                                                 </Badge>
                                                             ) : (
                                                                 <Badge variant="outline">
-                                                                    Pendente
+                                                                    Sem vencimento
                                                                 </Badge>
                                                             )}
                                                         </td>

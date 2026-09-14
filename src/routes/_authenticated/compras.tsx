@@ -13,9 +13,10 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger, } from "@/components/ui/tabs";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger, } from "@/components/ui/alert-dialog";
-import { CheckCircle, Trash2 } from "lucide-react";
+import { CheckCircle, Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { todayISO } from "@/lib/format";
+import { exportToXlsx } from "@/lib/export-xlsx";
 import {
     classificarVencimento,
     type StatusVencimento,
@@ -26,6 +27,17 @@ export const Route = createFileRoute("/_authenticated/compras")({
 });
 
 type AbaCompras = "historico" | "contas";
+
+const statusVencimentoLabel: Record<
+    StatusVencimento,
+    string
+> = {
+    vencida: "Vencida",
+    hoje: "Vence hoje",
+    proximos_7_dias: "Próximos 7 dias",
+    futura: "Futura",
+    sem_vencimento: "Sem vencimento",
+};
 
 function ComprasPage() {
     const qc = useQueryClient();
@@ -328,6 +340,83 @@ function ComprasPage() {
         ).toLocaleDateString("pt-BR");
     };
 
+    const onExport = () => {
+        const dataArquivo = todayISO();
+
+        if (aba === "historico") {
+            if (filtradas.length === 0) {
+                toast.info(
+                    "Não existem registros para exportar."
+                );
+                return;
+            }
+
+            const rows = filtradas.map((compra) => ({
+                Data: compra.data
+                    ? formatarData(compra.data)
+                    : "",
+                Código: compra.codigo ?? "",
+                Produto: compra.descricao ?? "",
+                Quantidade: Number(compra.quantidade ?? 0),
+                "Custo unitário": Number(
+                    compra.custo_unitario ?? 0
+                ),
+                "Custo total": Number(
+                    compra.custo_total ?? 0
+                ),
+                Fornecedor: compra.fornecedor ?? "",
+                "Forma de pagamento":
+                    compra.forma_pagamento === "a_vista"
+                        ? "À vista"
+                        : compra.forma_pagamento === "a_prazo"
+                          ? "A prazo"
+                          : compra.forma_pagamento ?? "",
+                Status:
+                    compra.status_pagamento === "pago"
+                        ? "Pago"
+                        : "Pendente",
+                Vencimento: compra.data_vencimento
+                    ? formatarData(compra.data_vencimento)
+                    : "",
+            }));
+
+            exportToXlsx(
+                `compras_${dataArquivo}`,
+                { Compras: rows }
+            );
+            return;
+        }
+
+        if (contasFiltradas.length === 0) {
+            toast.info(
+                "Não existem registros para exportar."
+            );
+            return;
+        }
+
+        const rows = contasFiltradas.map((compra) => ({
+            Fornecedor: compra.fornecedor ?? "",
+            Produto: compra.descricao ?? "",
+            Vencimento: compra.data_vencimento
+                ? formatarData(compra.data_vencimento)
+                : "",
+            "Situação do vencimento":
+                statusVencimentoLabel[
+                    compra.statusVencimento
+                ],
+            Valor: Number(compra.custo_total ?? 0),
+            "Status do pagamento":
+                compra.status_pagamento === "pago"
+                    ? "Pago"
+                    : "Pendente",
+        }));
+
+        exportToXlsx(
+            `contas_a_pagar_${dataArquivo}`,
+            { "Contas a pagar": rows }
+        );
+    };
+
     const empty =
         !isLoading && compras.length === 0;
 
@@ -414,7 +503,20 @@ function ComprasPage() {
                         ? `${filtradas.length} de ${compras.length} compras`
                         : `${contasAPagar.length} conta(s) pendente(s)`
                 }
-                actions={<NovaCompraDialog />}
+                actions={
+                    <div className="flex gap-2">
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={onExport}
+                        >
+                            <Download className="mr-1 h-4 w-4" />
+                            Exportar
+                        </Button>
+
+                        <NovaCompraDialog />
+                    </div>
+                }
             >
                 <Tabs
                     value={aba}

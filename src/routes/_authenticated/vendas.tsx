@@ -10,6 +10,7 @@ import {
   EmptyState,
 } from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   Table,
   TableBody,
@@ -18,7 +19,8 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { brl, num, pct, dateBR } from "@/lib/format";
+import { brl, num, pct, dateBR, todayISO } from "@/lib/format";
+import { exportToXlsx } from "@/lib/export-xlsx";
 import {
   BarChart,
   Bar,
@@ -33,8 +35,9 @@ import {
   ShoppingCart,
   DollarSign,
   TrendingUp,
-  Trophy,
+  Download,
 } from "lucide-react";
+import { toast } from "sonner";
 import { NovaVendaDialog } from "@/components/vendas/NovaVendaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
 import { queryKeys } from "@/constants/queryKeys";
@@ -102,6 +105,8 @@ function VendasPage() {
       return true;
     });
   }, [vendas, q, from, to]);
+
+  const vendasVisiveis = filtered.slice(0, 200);
 
   const k = useMemo(() => {
     const fat = filtered.reduce(
@@ -201,6 +206,41 @@ function VendasPage() {
         a.lucro - b.lucro
     )
     .slice(0, 5);
+
+  const onExport = () => {
+    if (vendasVisiveis.length === 0) {
+      toast.info(
+        "Não existem registros para exportar."
+      );
+      return;
+    }
+
+    const rows = vendasVisiveis.map((v) => ({
+      Data: v.data
+        ? dateBR(v.data)
+        : "",
+      Código: v.codigo ?? "",
+      Produto: v.descricao ?? "",
+      Quantidade: Number(v.quantidade ?? 0),
+      "Valor unitário": Number(
+        v.valor_unitario ?? 0
+      ),
+      "Total da venda": Number(
+        v.preco_venda ?? 0
+      ),
+      Custo: Number(v.custo ?? 0),
+      Despesas: Number(v.despesas ?? 0),
+      Lucro: Number(v.lucro ?? 0),
+      Margem: Number(v.margem ?? 0),
+      Cliente: v.cliente ?? "",
+      Observações: v.observacoes ?? "",
+    }));
+
+    exportToXlsx(
+      `vendas_${todayISO()}`,
+      { Vendas: rows }
+    );
+  };
 
   return (
     <AppShell
@@ -475,7 +515,14 @@ function VendasPage() {
         className="mt-6"
         description={`${filtered.length} registros`}
         actions={
-          <Trophy className="h-4 w-4 text-muted-foreground" />
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onExport}
+          >
+            <Download className="mr-1 h-4 w-4" />
+            Exportar
+          </Button>
         }
       >
         {isLoading ? (
@@ -524,9 +571,7 @@ function VendasPage() {
               </TableHeader>
 
               <TableBody>
-                {filtered
-                  .slice(0, 200)
-                  .map((v) => (
+                {vendasVisiveis.map((v) => (
                     <TableRow
                       key={v.id}
                     >

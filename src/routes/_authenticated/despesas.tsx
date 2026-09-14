@@ -281,8 +281,20 @@ function DespesasPage() {
   };
 
   const onExport = () => {
+    const registros =
+      aba === "historico"
+        ? filtered
+        : pendentes;
+
+    if (registros.length === 0) {
+      toast.info(
+        "Não existem registros para exportar."
+      );
+      return;
+    }
+
     const rows =
-      filtered.map((d) => ({
+      registros.map((d) => ({
         Data: d.data,
         Descrição: d.descricao,
         Categoria:
@@ -298,11 +310,13 @@ function DespesasPage() {
       }));
 
     exportToXlsx(
-      `despesas_${new Date()
-        .toISOString()
-        .slice(0, 10)}`,
+      aba === "historico"
+        ? `despesas_${todayISO()}`
+        : `contas_a_pagar_despesas_${todayISO()}`,
       {
-        Despesas: rows,
+        [aba === "historico"
+          ? "Despesas"
+          : "Contas a pagar"]: rows,
       }
     );
   };

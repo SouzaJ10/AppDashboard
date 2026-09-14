@@ -47,6 +47,8 @@ function ComprasPage() {
     const [busca, setBusca] = useState("");
     const [fornecedorFiltro, setFornecedorFiltro] =
         useState("__all");
+    const [dataInicial, setDataInicial] = useState("");
+    const [dataFinal, setDataFinal] = useState("");
 
     const [aba, setAba] =
         useState<AbaCompras>("historico");
@@ -136,6 +138,10 @@ function ComprasPage() {
         const termo = busca.toLowerCase().trim();
 
         return compras.filter((compra) => {
+            const dataCompra = compra.data
+                ? compra.data.slice(0, 10)
+                : "";
+
             if (termo) {
                 const codigo = String(compra.codigo ?? "");
 
@@ -162,9 +168,29 @@ function ComprasPage() {
                 return false;
             }
 
+            if (
+                dataInicial &&
+                dataCompra < dataInicial
+            ) {
+                return false;
+            }
+
+            if (
+                dataFinal &&
+                dataCompra > dataFinal
+            ) {
+                return false;
+            }
+
             return true;
         });
-    }, [compras, busca, fornecedorFiltro]);
+    }, [
+        compras,
+        busca,
+        fornecedorFiltro,
+        dataInicial,
+        dataFinal,
+    ]);
 
     const resumo = useMemo(() => {
         const mesAtual = todayISO().slice(0, 7);
@@ -551,7 +577,7 @@ function ComprasPage() {
                             />
                         ) : (
                             <>
-                                <div className="mb-4 flex flex-wrap items-center gap-2">
+                                <div className="mb-4 flex flex-wrap items-end gap-2">
                                     <Input
                                         className="w-64"
                                         placeholder="Buscar produto, código ou fornecedor..."
@@ -594,6 +620,48 @@ function ComprasPage() {
                                             )}
                                         </SelectContent>
                                     </Select>
+
+                                    <div className="grid gap-1">
+                                        <label
+                                            htmlFor="compras-data-inicial"
+                                            className="text-xs text-muted-foreground"
+                                        >
+                                            Data inicial
+                                        </label>
+
+                                        <Input
+                                            id="compras-data-inicial"
+                                            type="date"
+                                            className="w-40"
+                                            value={dataInicial}
+                                            onChange={(e) =>
+                                                setDataInicial(
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    </div>
+
+                                    <div className="grid gap-1">
+                                        <label
+                                            htmlFor="compras-data-final"
+                                            className="text-xs text-muted-foreground"
+                                        >
+                                            Data final
+                                        </label>
+
+                                        <Input
+                                            id="compras-data-final"
+                                            type="date"
+                                            className="w-40"
+                                            value={dataFinal}
+                                            onChange={(e) =>
+                                                setDataFinal(
+                                                    e.target.value
+                                                )
+                                            }
+                                        />
+                                    </div>
                                 </div>
 
                                 {filtradas.length === 0 ? (

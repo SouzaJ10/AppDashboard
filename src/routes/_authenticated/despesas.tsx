@@ -41,6 +41,10 @@ function DespesasPage() {
     useState("__all__");
   const [statusFilter, setStatusFilter] =
     useState("__all__");
+  const [dataInicial, setDataInicial] =
+    useState("");
+  const [dataFinal, setDataFinal] =
+    useState("");
   const [aba, setAba] =
     useState<AbaDespesas>("historico");
 
@@ -94,6 +98,10 @@ function DespesasPage() {
 
     return despesas.filter(
       (despesa) => {
+        const dataDespesa = despesa.data
+          ? despesa.data.slice(0, 10)
+          : "";
+
         if (
           catFilter !== "__all__" &&
           despesa.categoria !== catFilter
@@ -104,6 +112,20 @@ function DespesasPage() {
         if (
           statusFilter !== "__all__" &&
           despesa.status !== statusFilter
+        ) {
+          return false;
+        }
+
+        if (
+          dataInicial &&
+          dataDespesa < dataInicial
+        ) {
+          return false;
+        }
+
+        if (
+          dataFinal &&
+          dataDespesa > dataFinal
         ) {
           return false;
         }
@@ -130,6 +152,8 @@ function DespesasPage() {
     q,
     catFilter,
     statusFilter,
+    dataInicial,
+    dataFinal,
   ]);
 
   const pendentes = useMemo(
@@ -537,6 +561,46 @@ function DespesasPage() {
                       </SelectItem>
                     </SelectContent>
                   </Select>
+
+                  <div className="grid gap-1">
+                    <label
+                      htmlFor="despesas-data-inicial"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Data inicial
+                    </label>
+
+                    <Input
+                      id="despesas-data-inicial"
+                      type="date"
+                      value={dataInicial}
+                      onChange={(e) =>
+                        setDataInicial(
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
+
+                  <div className="grid gap-1">
+                    <label
+                      htmlFor="despesas-data-final"
+                      className="text-xs text-muted-foreground"
+                    >
+                      Data final
+                    </label>
+
+                    <Input
+                      id="despesas-data-final"
+                      type="date"
+                      value={dataFinal}
+                      onChange={(e) =>
+                        setDataFinal(
+                          e.target.value
+                        )
+                      }
+                    />
+                  </div>
                 </div>
 
                 {filtered.length ===

@@ -9,6 +9,7 @@ import { queryKeys } from "@/constants/queryKeys";
 import { listarVendas } from "@/service/vendas.service";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { agruparVendasPorProduto } from "@/lib/agregacao-produtos-vendas";
 
 export const Route = createFileRoute(
   "/_authenticated/precificacao"
@@ -36,82 +37,44 @@ function PrecificacaoPage() {
   });
 
   const linhas = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        descricao: string;
-        qtd: number;
-        faturamento: number;
-        custo: number;
-        despesas: number;
-        lucro: number;
-      }
-    >();
+    return agruparVendasPorProduto(vendas)
+      .map((grupo) => {
+        const vendasProduto = grupo.vendas;
 
-    for (const v of vendas) {
-      const key =
-        v.descricao ?? "—";
-
-      const cur =
-        map.get(key) ?? {
-          descricao: key,
-          qtd: 0,
-          faturamento: 0,
-          custo: 0,
-          despesas: 0,
-          lucro: 0,
-        };
-
-      cur.qtd +=
-        Number(
-          v.quantidade ?? 0
+        const qtd = vendasProduto.reduce(
+          (s, v) =>
+            s + Number(v.quantidade ?? 0),
+          0
         );
 
-      cur.faturamento +=
-        Number(
-          v.preco_venda ?? 0
+        const faturamento = vendasProduto.reduce(
+          (s, v) =>
+            s + Number(v.preco_venda ?? 0),
+          0
         );
 
-      cur.custo +=
-        Number(
-          v.custo ?? 0
+        const custo = vendasProduto.reduce(
+          (s, v) =>
+            s + Number(v.custo ?? 0),
+          0
         );
 
-      cur.despesas +=
-        Number(
-          v.despesas ?? 0
+        const despesas = vendasProduto.reduce(
+          (s, v) =>
+            s + Number(v.despesas ?? 0),
+          0
         );
 
-      cur.lucro +=
-        Number(
-          v.lucro ?? 0
+        const lucro = vendasProduto.reduce(
+          (s, v) =>
+            s + Number(v.lucro ?? 0),
+          0
         );
 
-      map.set(
-        key,
-        cur
-      );
-    }
-
-    return Array.from(
-      map.values()
-    )
-      .map((r) => {
         const precoMedio =
-          r.qtd > 0
-            ? r.faturamento /
-            r.qtd
+          qtd > 0
+            ? faturamento / qtd
             : 0;
-
-        const vendasProduto =
-          vendas.filter(
-            (v) =>
-              (
-                v.descricao ??
-                "—"
-              ) ===
-              r.descricao
-          );
 
         const vendasComCusto =
           vendasProduto.filter(
@@ -168,13 +131,18 @@ function PrecificacaoPage() {
             : null;
 
         const margem =
-          r.faturamento > 0
-            ? r.lucro /
-            r.faturamento
+          faturamento > 0
+            ? lucro / faturamento
             : 0;
 
         return {
-          ...r,
+          chave: grupo.chave,
+          descricao: grupo.rotulo,
+          qtd,
+          faturamento,
+          custo,
+          despesas,
+          lucro,
           precoMedio,
           custoUnit,
           roi,
@@ -244,9 +212,7 @@ function PrecificacaoPage() {
                   .slice(0, 200)
                   .map((r) => (
                     <TableRow
-                      key={
-                        r.descricao
-                      }
+                      key={r.chave}
                     >
                       <TableCell className="max-w-xs truncate">
                         {

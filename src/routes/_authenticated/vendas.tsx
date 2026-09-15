@@ -56,6 +56,7 @@ import {
   TODOS_CLIENTES,
   type ClienteFiltro,
 } from "@/lib/vendas-filtros";
+import { agruparVendasPorProduto } from "@/lib/agregacao-produtos-vendas";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
   component: VendasPage,
@@ -144,42 +145,26 @@ function VendasPage() {
   }, [filtered]);
 
   const ranking = useMemo(() => {
-    const map = new Map<
-      string,
-      {
-        descricao: string;
-        qtd: number;
-        faturamento: number;
-        lucro: number;
-      }
-    >();
-
-    for (const v of filtered) {
-      const key =
-        v.descricao ?? "Sem nome";
-
-      const cur =
-        map.get(key) ?? {
-          descricao: key,
-          qtd: 0,
-          faturamento: 0,
-          lucro: 0,
-        };
-
-      cur.qtd +=
-        Number(v.quantidade ?? 0);
-
-      cur.faturamento +=
-        Number(v.preco_venda ?? 0);
-
-      cur.lucro +=
-        Number(v.lucro ?? 0);
-
-      map.set(key, cur);
-    }
-
-    return Array.from(
-      map.values()
+    return agruparVendasPorProduto(filtered).map(
+      (grupo) => ({
+        chave: grupo.chave,
+        descricao: grupo.rotulo,
+        qtd: grupo.vendas.reduce(
+          (s, v) =>
+            s + Number(v.quantidade ?? 0),
+          0
+        ),
+        faturamento: grupo.vendas.reduce(
+          (s, v) =>
+            s + Number(v.preco_venda ?? 0),
+          0
+        ),
+        lucro: grupo.vendas.reduce(
+          (s, v) =>
+            s + Number(v.lucro ?? 0),
+          0
+        ),
+      })
     );
   }, [filtered]);
 
@@ -500,9 +485,7 @@ function VendasPage() {
               {menosRentaveis.map(
                 (r) => (
                   <TableRow
-                    key={
-                      r.descricao
-                    }
+                    key={r.chave}
                   >
                     <TableCell className="font-medium">
                       {

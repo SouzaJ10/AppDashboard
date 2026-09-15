@@ -12,6 +12,7 @@ import { listarMovimentacoes } from "@/service/movimentacoes.service";
 import { useRealtime } from "@/hooks/useRealtime";
 import { TrendingUp, TrendingDown, AlertTriangle, Trophy, PackageX, Boxes, Lightbulb, } from "lucide-react";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { agruparVendasPorProduto } from "@/lib/agregacao-produtos-vendas";
 
 export const Route = createFileRoute("/_authenticated/insights")({
   component: InsightsPage,
@@ -86,39 +87,26 @@ function InsightsPage() {
       return out;
     }
 
-    // Aggregate by product
-    const byProd = new Map<
-      string,
-      {
-        qtd: number;
-        fat: number;
-        lucro: number;
-      }
-    >();
+    const grupos = agruparVendasPorProduto(vendas);
 
-    for (const v of vendas) {
-      const k = v.descricao ?? "—";
-
-      const c = byProd.get(k) ?? {
-        qtd: 0,
-        fat: 0,
-        lucro: 0,
-      };
-
-      c.qtd += Number(v.quantidade ?? 0);
-      c.fat += Number(v.preco_venda ?? 0);
-      c.lucro += Number(v.lucro ?? 0);
-
-      byProd.set(k, c);
-    }
-
-    const arr = Array.from(
-      byProd,
-      ([k, v]) => ({
-        produto: k,
-        ...v,
-      })
-    );
+    const arr = grupos.map((grupo) => ({
+      produto: grupo.rotulo,
+      qtd: grupo.vendas.reduce(
+        (s, v) =>
+          s + Number(v.quantidade ?? 0),
+        0
+      ),
+      fat: grupo.vendas.reduce(
+        (s, v) =>
+          s + Number(v.preco_venda ?? 0),
+        0
+      ),
+      lucro: grupo.vendas.reduce(
+        (s, v) =>
+          s + Number(v.lucro ?? 0),
+        0
+      ),
+    }));
 
     const maisLucro = [...arr].sort(
       (a, b) => b.lucro - a.lucro
@@ -171,8 +159,10 @@ function InsightsPage() {
     }
 
     // Stock without sales
-    const vendidosSet = new Set(
-      byProd.keys()
+    const produtosVendidos = new Set(
+      vendas.flatMap((v) =>
+        v.produto_id ? [v.produto_id] : []
+      )
     );
 
     const parado = produtos.find(
@@ -180,9 +170,7 @@ function InsightsPage() {
         Number(
           p.estoque_atual ?? 0
         ) > 0 &&
-        !vendidosSet.has(
-          p.descricao ?? ""
-        )
+        !produtosVendidos.has(p.id)
     );
 
     if (parado) {

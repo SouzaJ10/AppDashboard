@@ -22,6 +22,7 @@ export type SalvarDespesaInput = {
     descricao: string;
     valor: number;
     data: string;
+    dataVencimento: string | null;
     categoria: string | null;
     formaPagamento: FormaPagamentoDespesa | null;
     centroCusto: string | null;
@@ -53,6 +54,8 @@ export async function pagarDespesa(
             p_descricao: despesa.descricao,
             p_valor: Number(despesa.valor),
             p_data: data,
+            p_data_vencimento:
+                despesa.data_vencimento ?? undefined,
             p_categoria: despesa.categoria ?? undefined,
             p_forma_pagamento: despesa.forma_pagamento ?? undefined,
             p_centro_custo: despesa.centro_custo ?? undefined,
@@ -120,6 +123,8 @@ export async function registrarDespesa(
             p_descricao: input.descricao,
             p_valor: input.valor,
             p_data: input.data,
+            p_data_vencimento:
+                input.dataVencimento ?? undefined,
             p_categoria:
                 input.categoria ?? undefined,
             p_forma_pagamento:
@@ -148,6 +153,8 @@ export async function atualizarDespesa(
             p_descricao: input.descricao,
             p_valor: input.valor,
             p_data: input.data,
+            p_data_vencimento:
+                input.dataVencimento ?? undefined,
             p_categoria: input.categoria ?? undefined,
             p_forma_pagamento: input.formaPagamento ?? undefined,
             p_centro_custo: input.centroCusto ?? undefined,

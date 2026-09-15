@@ -19,6 +19,7 @@ export type Despesa = {
   categoria: string | null;
   valor: number;
   data: string;
+  data_vencimento: string | null;
   forma_pagamento: FormaPagamentoDespesa | null;
   centro_custo: string | null;
   observacoes: string | null;

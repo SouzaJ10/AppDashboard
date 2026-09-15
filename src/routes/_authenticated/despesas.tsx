@@ -14,6 +14,10 @@ import { DespesaDialog } from "@/components/despesas/DespesaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
 import { brl, dateBR, todayISO } from "@/lib/format";
 import { exportToXlsx } from "@/lib/export-xlsx";
+import {
+  classificarVencimento,
+  type StatusVencimento,
+} from "@/lib/vencimentos";
 import type { Despesa } from "@/integrations/supabase/despesas-extra";
 import { Trash2, Download, Pencil, CheckCircle, } from "lucide-react";
 import { toast } from "sonner";
@@ -22,6 +26,34 @@ import { excluirDespesa, listarDespesas, pagarDespesa, } from "@/service/despesa
 import { useEmpresa } from "@/contexts/EmpresaContext";
 
 type AbaDespesas = "historico" | "contas";
+
+const statusVencimentoLabel: Record<
+  StatusVencimento,
+  string
+> = {
+  vencida: "Vencida",
+  hoje: "Vence hoje",
+  proximos_7_dias: "Próximos 7 dias",
+  futura: "Futura",
+  sem_vencimento: "Sem vencimento",
+};
+
+const indicadoresVencimento: {
+  status: StatusVencimento;
+  label: string;
+}[] = [
+  { status: "vencida", label: "Vencidas" },
+  { status: "hoje", label: "Vence hoje" },
+  {
+    status: "proximos_7_dias",
+    label: "Próximos 7 dias",
+  },
+  { status: "futura", label: "Futuras" },
+  {
+    status: "sem_vencimento",
+    label: "Sem vencimento",
+  },
+];
 
 export const Route = createFileRoute("/_authenticated/despesas")({
   component: DespesasPage,
@@ -47,6 +79,10 @@ function DespesasPage() {
     useState("");
   const [aba, setAba] =
     useState<AbaDespesas>("historico");
+  const [vencimentoFiltro, setVencimentoFiltro] =
+    useState<"__all__" | StatusVencimento>(
+      "__all__"
+    );
 
   const despesasQ = useQuery({
     queryKey: queryKeys.despesas.empresa(empresaId),
@@ -164,6 +200,66 @@ function DespesasPage() {
       ),
     [despesas]
   );
+
+  const hojeVencimentos = todayISO();
+
+  const pendentesComVencimento = useMemo(
+    () =>
+      pendentes.map((despesa) => ({
+        ...despesa,
+        statusVencimento:
+          classificarVencimento({
+            dataVencimento:
+              despesa.data_vencimento,
+            hoje: hojeVencimentos,
+          }),
+      })),
+    [pendentes, hojeVencimentos]
+  );
+
+  const resumoVencimentos = useMemo(() => {
+    const resumoPorStatus: Record<
+      StatusVencimento,
+      { quantidade: number; valor: number }
+    > = {
+      vencida: { quantidade: 0, valor: 0 },
+      hoje: { quantidade: 0, valor: 0 },
+      proximos_7_dias: {
+        quantidade: 0,
+        valor: 0,
+      },
+      futura: { quantidade: 0, valor: 0 },
+      sem_vencimento: {
+        quantidade: 0,
+        valor: 0,
+      },
+    };
+
+    for (const despesa of pendentesComVencimento) {
+      const item =
+        resumoPorStatus[despesa.statusVencimento];
+
+      item.quantidade += 1;
+      item.valor += Number(despesa.valor ?? 0);
+    }
+
+    return resumoPorStatus;
+  }, [pendentesComVencimento]);
+
+  const contasFiltradas = useMemo(() => {
+    if (vencimentoFiltro === "__all__") {
+      return pendentesComVencimento;
+    }
+
+    return pendentesComVencimento.filter(
+      (despesa) =>
+        despesa.statusVencimento ===
+        vencimentoFiltro
+    );
+  }, [
+    pendentesComVencimento,
+    vencimentoFiltro,
+  ]);
 
   const resumo = useMemo(() => {
 
@@ -305,20 +401,15 @@ function DespesasPage() {
   };
 
   const onExport = () => {
-    const registros =
-      aba === "historico"
-        ? filtered
-        : pendentes;
+    if (aba === "historico") {
+      if (filtered.length === 0) {
+        toast.info(
+          "Não existem registros para exportar."
+        );
+        return;
+      }
 
-    if (registros.length === 0) {
-      toast.info(
-        "Não existem registros para exportar."
-      );
-      return;
-    }
-
-    const rows =
-      registros.map((d) => ({
+      const rows = filtered.map((d) => ({
         Data: d.data,
         Descrição: d.descricao,
         Categoria:
@@ -331,17 +422,48 @@ function DespesasPage() {
         Status: d.status,
         Observações:
           d.observacoes ?? "",
+        Vencimento: d.data_vencimento
+          ? dateBR(d.data_vencimento)
+          : "",
       }));
 
+      exportToXlsx(
+        `despesas_${todayISO()}`,
+        { Despesas: rows }
+      );
+      return;
+    }
+
+    if (contasFiltradas.length === 0) {
+      toast.info(
+        "Não existem registros para exportar."
+      );
+      return;
+    }
+
+    const rows = contasFiltradas.map((d) => ({
+      Data: d.data,
+      Descrição: d.descricao,
+      Categoria: d.categoria ?? "",
+      Valor: Number(d.valor),
+      "Forma de pagamento":
+        d.forma_pagamento ?? "",
+      "Centro de custo":
+        d.centro_custo ?? "",
+      Status: d.status,
+      Observações: d.observacoes ?? "",
+      Vencimento: d.data_vencimento
+        ? dateBR(d.data_vencimento)
+        : "",
+      "Situação do vencimento":
+        statusVencimentoLabel[
+          d.statusVencimento
+        ],
+    }));
+
     exportToXlsx(
-      aba === "historico"
-        ? `despesas_${todayISO()}`
-        : `contas_a_pagar_despesas_${todayISO()}`,
-      {
-        [aba === "historico"
-          ? "Despesas"
-          : "Contas a pagar"]: rows,
-      }
+      `contas_a_pagar_despesas_${todayISO()}`,
+      { "Contas a pagar": rows }
     );
   };
 
@@ -434,7 +556,7 @@ function DespesasPage() {
         description={
           aba === "historico"
             ? `${filtered.length} de ${despesas.length} despesas`
-            : `${pendentes.length} despesa(s) pendente(s)`
+            : `${contasFiltradas.length} de ${pendentes.length} despesa(s) pendente(s)`
         }
         actions={
           <div className="flex gap-2">
@@ -622,6 +744,10 @@ function DespesasPage() {
                           </TableHead>
 
                           <TableHead>
+                            Vencimento
+                          </TableHead>
+
+                          <TableHead>
                             Descrição
                           </TableHead>
 
@@ -657,6 +783,14 @@ function DespesasPage() {
                                 {dateBR(
                                   d.data
                                 )}
+                              </TableCell>
+
+                              <TableCell>
+                                {d.data_vencimento
+                                  ? dateBR(
+                                      d.data_vencimento
+                                    )
+                                  : "—"}
                               </TableCell>
 
                               <TableCell className="max-w-xs truncate font-medium">
@@ -934,6 +1068,68 @@ function DespesasPage() {
               </div>
             </div>
 
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
+              {indicadoresVencimento.map(
+                (indicador) => {
+                  const resumoStatus =
+                    resumoVencimentos[
+                      indicador.status
+                    ];
+
+                  return (
+                    <div
+                      key={indicador.status}
+                      className="rounded-xl border bg-card p-4"
+                    >
+                      <p className="text-sm text-muted-foreground">
+                        {indicador.label}
+                      </p>
+
+                      <p className="mt-1 text-2xl font-semibold">
+                        {resumoStatus.quantidade}
+                      </p>
+
+                      <p className="mt-1 text-xs text-muted-foreground">
+                        {brl(resumoStatus.valor)}
+                      </p>
+                    </div>
+                  );
+                }
+              )}
+            </div>
+
+            <Select
+              value={vencimentoFiltro}
+              onValueChange={(value) =>
+                setVencimentoFiltro(
+                  value as
+                    | "__all__"
+                    | StatusVencimento
+                )
+              }
+            >
+              <SelectTrigger className="w-56">
+                <SelectValue placeholder="Vencimento" />
+              </SelectTrigger>
+
+              <SelectContent>
+                <SelectItem value="__all__">
+                  Todos os vencimentos
+                </SelectItem>
+
+                {indicadoresVencimento.map(
+                  (indicador) => (
+                    <SelectItem
+                      key={indicador.status}
+                      value={indicador.status}
+                    >
+                      {indicador.label}
+                    </SelectItem>
+                  )
+                )}
+              </SelectContent>
+            </Select>
+
             {pendentes.length ===
               0 ? (
               <div className="rounded-lg border border-dashed p-8 text-center">
@@ -947,6 +1143,17 @@ function DespesasPage() {
                   estão pagas.
                 </p>
               </div>
+            ) : contasFiltradas.length === 0 ? (
+              <div className="rounded-lg border border-dashed p-8 text-center">
+                <p className="font-medium">
+                  Nenhuma conta encontrada
+                </p>
+
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Não existem despesas com essa
+                  situação de vencimento.
+                </p>
+              </div>
             ) : (
               <div className="overflow-x-auto rounded-lg border">
                 <Table>
@@ -954,6 +1161,14 @@ function DespesasPage() {
                     <TableRow>
                       <TableHead>
                         Data
+                      </TableHead>
+
+                      <TableHead>
+                        Vencimento
+                      </TableHead>
+
+                      <TableHead>
+                        Situação
                       </TableHead>
 
                       <TableHead>
@@ -979,7 +1194,7 @@ function DespesasPage() {
                   </TableHeader>
 
                   <TableBody>
-                    {pendentes.map(
+                    {contasFiltradas.map(
                       (d) => (
                         <TableRow
                           key={d.id}
@@ -988,6 +1203,32 @@ function DespesasPage() {
                             {dateBR(
                               d.data
                             )}
+                          </TableCell>
+
+                          <TableCell>
+                            {d.data_vencimento
+                              ? dateBR(
+                                  d.data_vencimento
+                                )
+                              : "—"}
+                          </TableCell>
+
+                          <TableCell>
+                            <Badge
+                              variant="outline"
+                              className={
+                                d.statusVencimento ===
+                                "vencida"
+                                  ? "border-destructive/40 text-destructive"
+                                  : undefined
+                              }
+                            >
+                              {
+                                statusVencimentoLabel[
+                                  d.statusVencimento
+                                ]
+                              }
+                            </Badge>
                           </TableCell>
 
                           <TableCell className="font-medium">

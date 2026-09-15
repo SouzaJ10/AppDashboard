@@ -159,6 +159,7 @@ describe("despesas.service", () => {
         id: "despesa-1",
         descricao: "Conta de energia",
         valor: 150,
+        data_vencimento: "2026-09-20",
         categoria: null,
         forma_pagamento: null,
         centro_custo: null,
@@ -177,6 +178,7 @@ describe("despesas.service", () => {
           p_descricao: "Conta de energia",
           p_valor: 150,
           p_data: "2026-09-12",
+          p_data_vencimento: "2026-09-20",
           p_categoria: undefined,
           p_forma_pagamento: undefined,
           p_centro_custo: undefined,
@@ -198,6 +200,7 @@ describe("despesas.service", () => {
         id: "despesa-1",
         descricao: "Conta de energia",
         valor: 150,
+        data_vencimento: null,
         categoria: null,
         forma_pagamento: null,
         centro_custo: null,
@@ -387,6 +390,7 @@ describe("despesas.service", () => {
           descricao: "Conta de energia",
           valor: 150,
           data: "2026-09-12",
+          dataVencimento: "2026-09-20",
           categoria: null,
           formaPagamento: null,
           centroCusto: null,
@@ -403,12 +407,44 @@ describe("despesas.service", () => {
           p_descricao: "Conta de energia",
           p_valor: 150,
           p_data: "2026-09-12",
+          p_data_vencimento: "2026-09-20",
           p_categoria: undefined,
           p_forma_pagamento: undefined,
           p_centro_custo: undefined,
           p_observacoes: undefined,
           p_status: "pendente",
         },
+      );
+    });
+
+    it("envia vencimento nulo quando permitido", async () => {
+      rpcMock.mockResolvedValue({
+        data: null,
+        error: null,
+      });
+
+      await registrarDespesa(
+        {
+          descricao: "Despesa paga",
+          valor: 80,
+          data: "2026-09-12",
+          dataVencimento: null,
+          categoria: null,
+          formaPagamento: null,
+          centroCusto: null,
+          observacoes: null,
+          status: "pago",
+        },
+        "empresa-1",
+      );
+
+      expect(rpcMock).toHaveBeenCalledWith(
+        "registrar_despesa",
+        expect.objectContaining({
+          p_data: "2026-09-12",
+          p_data_vencimento: undefined,
+          p_status: "pago",
+        }),
       );
     });
 
@@ -428,6 +464,7 @@ describe("despesas.service", () => {
             descricao: "Conta de energia",
             valor: 150,
             data: "2026-09-12",
+            dataVencimento: null,
             categoria: null,
             formaPagamento: null,
             centroCusto: null,
@@ -453,6 +490,7 @@ describe("despesas.service", () => {
           descricao: "Energia atualizada",
           valor: 200,
           data: "2026-09-13",
+          dataVencimento: "2026-09-25",
           categoria: null,
           formaPagamento: null,
           centroCusto: null,
@@ -468,6 +506,7 @@ describe("despesas.service", () => {
           p_descricao: "Energia atualizada",
           p_valor: 200,
           p_data: "2026-09-13",
+          p_data_vencimento: "2026-09-25",
           p_categoria: undefined,
           p_forma_pagamento: undefined,
           p_centro_custo: undefined,
@@ -494,6 +533,7 @@ describe("despesas.service", () => {
             descricao: "Conta de energia",
             valor: 150,
             data: "2026-09-12",
+            dataVencimento: null,
             categoria: null,
             formaPagamento: null,
             centroCusto: null,

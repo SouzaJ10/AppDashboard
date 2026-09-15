@@ -71,6 +71,7 @@ export function DespesaDialog({
     categoria: "Outros",
     valor: "0",
     data: today,
+    data_vencimento: "",
     forma_pagamento: "PIX" as FormaPagamentoDespesa,
     centro_custo: "",
     observacoes: "",
@@ -92,6 +93,8 @@ export function DespesaDialog({
         data: (
           despesa.data ?? today
         ).slice(0, 10),
+        data_vencimento:
+          despesa.data_vencimento?.slice(0, 10) ?? "",
         forma_pagamento:
           despesa.forma_pagamento ?? "PIX",
         centro_custo:
@@ -108,6 +111,7 @@ export function DespesaDialog({
         categoria: "Outros",
         valor: "0",
         data: today,
+        data_vencimento: "",
         forma_pagamento: "PIX",
         centro_custo: "",
         observacoes: "",
@@ -176,6 +180,15 @@ export function DespesaDialog({
       );
     }
 
+    if (
+      form.status === "pendente" &&
+      !form.data_vencimento
+    ) {
+      return toast.error(
+        "Informe a data de vencimento"
+      );
+    }
+
     let categoria = form.categoria;
 
     if (form.novaCategoria.trim()) {
@@ -219,6 +232,8 @@ export function DespesaDialog({
           descricao: form.descricao.trim(),
           valor,
           data: form.data,
+          dataVencimento:
+            form.data_vencimento || null,
           categoria: categoria || null,
           formaPagamento:
             form.forma_pagamento || null,
@@ -242,6 +257,8 @@ export function DespesaDialog({
             descricao: form.descricao.trim(),
             valor: Number(form.valor),
             data: form.data,
+            dataVencimento:
+              form.data_vencimento || null,
             categoria,
             formaPagamento:
               form.forma_pagamento || null,
@@ -424,7 +441,7 @@ export function DespesaDialog({
           </div>
 
           <div>
-            <Label>Data *</Label>
+            <Label>Data da despesa *</Label>
 
             <Input
               type="date"
@@ -436,6 +453,28 @@ export function DespesaDialog({
                 )
               }
             />
+          </div>
+
+          <div>
+            <Label>
+              Data de vencimento
+              {form.status === "pendente" ? " *" : ""}
+            </Label>
+
+            <Input
+              type="date"
+              value={form.data_vencimento}
+              onChange={(e) =>
+                set(
+                  "data_vencimento",
+                  e.target.value
+                )
+              }
+            />
+
+            <p className="mt-1 text-xs text-muted-foreground">
+              Usada somente para acompanhar o vencimento.
+            </p>
           </div>
 
           <div>

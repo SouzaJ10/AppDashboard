@@ -180,6 +180,8 @@ function EstoquePage() {
         zerados={k.zerados}
         baixo={k.baixo}
         valorEstoque={k.valorEstoque}
+        status={status}
+        onStatusChange={setStatus}
       />
 
       <Section

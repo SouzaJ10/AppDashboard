@@ -80,7 +80,7 @@ export function TabelaProdutos({
             );
 
             const giro =
-              giroMap.get(produto.descricao ?? "") ?? 0;
+              giroMap.get(produto.id) ?? 0;
 
             const status = statusOf(
               estoque,

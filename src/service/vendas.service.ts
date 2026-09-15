@@ -54,7 +54,7 @@ export async function listarGiroProdutos(
 ) {
   const { data, error } = await supabase
     .from("vendas")
-    .select("descricao, quantidade")
+    .select("produto_id, quantidade")
     .eq("empresa_id", empresaId);
 
   if (error) {

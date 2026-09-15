@@ -19,7 +19,7 @@ import { useEmpresa } from "@/contexts/EmpresaContext";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
-function EstoquePage() {
+export function EstoquePage() {
   useRealtime(["produtos", "vendas"]);
 
   const qc = useQueryClient();
@@ -43,9 +43,13 @@ function EstoquePage() {
     const m = new Map<string, number>();
 
     for (const v of vendas) {
+      if (!v.produto_id) {
+        continue;
+      }
+
       m.set(
-        v.descricao ?? "",
-        (m.get(v.descricao ?? "") ?? 0) +
+        v.produto_id,
+        (m.get(v.produto_id) ?? 0) +
         Number(v.quantidade ?? 0)
       );
     }

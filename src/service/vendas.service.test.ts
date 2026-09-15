@@ -200,7 +200,7 @@ describe("vendas.service", () => {
     it("lista o giro somente da empresa informada", async () => {
       const giro = [
         {
-          descricao: "Produto A",
+          produto_id: "produto-1",
           quantidade: 4,
         },
       ];
@@ -223,7 +223,7 @@ describe("vendas.service", () => {
 
       expect(fromMock).toHaveBeenCalledWith("vendas");
       expect(selectMock).toHaveBeenCalledWith(
-        "descricao, quantidade",
+        "produto_id, quantidade",
       );
       expect(eqMock).toHaveBeenCalledWith(
         "empresa_id",

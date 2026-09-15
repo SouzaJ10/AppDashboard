@@ -12,6 +12,13 @@ import {
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -42,6 +49,13 @@ import { NovaVendaDialog } from "@/components/vendas/NovaVendaDialog";
 import { useRealtime } from "@/hooks/useRealtime";
 import { queryKeys } from "@/constants/queryKeys";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import {
+  filtrarVendas,
+  listarOpcoesClientes,
+  SEM_CLIENTE,
+  TODOS_CLIENTES,
+  type ClienteFiltro,
+} from "@/lib/vendas-filtros";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
   component: VendasPage,
@@ -59,6 +73,8 @@ function VendasPage() {
   const [q, setQ] = useState("");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
+  const [clienteFiltro, setClienteFiltro] =
+    useState<ClienteFiltro>(TODOS_CLIENTES);
 
   const {
     data: vendas = [],
@@ -77,34 +93,21 @@ function VendasPage() {
     enabled: !!empresaId,
   });
 
-  const filtered = useMemo(() => {
-    return vendas.filter((v) => {
-      if (
-        q &&
-        !(v.descricao ?? "")
-          .toLowerCase()
-          .includes(q.toLowerCase())
-      ) {
-        return false;
-      }
+  const clientes = useMemo(
+    () => listarOpcoesClientes(vendas),
+    [vendas]
+  );
 
-      if (
-        from &&
-        (v.data ?? "") < from
-      ) {
-        return false;
-      }
-
-      if (
-        to &&
-        (v.data ?? "") > to
-      ) {
-        return false;
-      }
-
-      return true;
-    });
-  }, [vendas, q, from, to]);
+  const filtered = useMemo(
+    () =>
+      filtrarVendas(vendas, {
+        busca: q,
+        cliente: clienteFiltro,
+        dataInicial: from,
+        dataFinal: to,
+      }),
+    [vendas, q, clienteFiltro, from, to]
+  );
 
   const vendasVisiveis = filtered.slice(0, 200);
 
@@ -252,14 +255,44 @@ function VendasPage() {
         className="mb-4"
         title="Filtros"
       >
-        <div className="grid gap-3 sm:grid-cols-3">
+        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
           <Input
-            placeholder="Buscar por produto..."
+            placeholder="Buscar produto, código ou cliente..."
             value={q}
             onChange={(e) =>
               setQ(e.target.value)
             }
           />
+
+          <Select
+            value={clienteFiltro}
+            onValueChange={(value) =>
+              setClienteFiltro(value as ClienteFiltro)
+            }
+          >
+            <SelectTrigger aria-label="Filtrar por cliente">
+              <SelectValue placeholder="Todos os clientes" />
+            </SelectTrigger>
+
+            <SelectContent>
+              <SelectItem value={TODOS_CLIENTES}>
+                Todos os clientes
+              </SelectItem>
+
+              <SelectItem value={SEM_CLIENTE}>
+                Sem cliente
+              </SelectItem>
+
+              {clientes.map((cliente) => (
+                <SelectItem
+                  key={cliente.value}
+                  value={cliente.value}
+                >
+                  {cliente.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
           <Input
             type="date"
@@ -544,12 +577,16 @@ function VendasPage() {
                     Produto
                   </TableHead>
 
+                  <TableHead>
+                    Cliente
+                  </TableHead>
+
                   <TableHead className="text-right">
                     Qtd
                   </TableHead>
 
                   <TableHead className="text-right">
-                    Preço
+                    Total da venda
                   </TableHead>
 
                   <TableHead className="text-right">
@@ -585,6 +622,10 @@ function VendasPage() {
                         {
                           v.descricao
                         }
+                      </TableCell>
+
+                      <TableCell className="max-w-xs truncate">
+                        {v.cliente?.trim() || "—"}
                       </TableCell>
 
                       <TableCell className="text-right">

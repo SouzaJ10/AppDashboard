@@ -189,4 +189,23 @@ describe("filtros de vendas", () => {
       margem: 0.35,
     });
   });
+
+  it("normaliza data com horário e mantém limites inclusivos", () => {
+    const resultado = filtrarVendas(
+      [
+        {
+          ...vendas[0],
+          data: "2026-09-10T23:30:00-03:00",
+        },
+      ],
+      {
+        busca: "",
+        cliente: TODOS_CLIENTES,
+        dataInicial: "2026-09-10",
+        dataFinal: "2026-09-10",
+      }
+    );
+
+    expect(resultado).toHaveLength(1);
+  });
 });

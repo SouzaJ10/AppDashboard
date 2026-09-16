@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo, useState } from "react";
+import { useMemo, useState, type ReactNode } from "react";
+import type { LucideIcon } from "lucide-react";
 
 import { listarVendas } from "@/service/vendas.service";
 import { AppShell } from "@/components/layout/AppShell";
@@ -10,6 +11,7 @@ import {
   EmptyState,
 } from "@/components/dashboard/KpiCard";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
   Select,
@@ -43,6 +45,9 @@ import {
   DollarSign,
   TrendingUp,
   Download,
+  ArrowUpRight,
+  ArrowDownRight,
+  Minus,
 } from "lucide-react";
 import { toast } from "sonner";
 import { NovaVendaDialog } from "@/components/vendas/NovaVendaDialog";
@@ -57,10 +62,121 @@ import {
   type ClienteFiltro,
 } from "@/lib/vendas-filtros";
 import { agruparVendasPorProduto } from "@/lib/agregacao-produtos-vendas";
+import {
+  calcularMetricasComerciais,
+  compararMetricasComerciais,
+  PERIODOS_COMERCIAIS,
+  resolverPeriodosComparacaoComercial,
+  type ComparacaoValor,
+  type IntervaloComercial,
+  type PeriodoComercial,
+  type TendenciaComparacao,
+} from "@/lib/comparacao-comercial";
 
 export const Route = createFileRoute("/_authenticated/vendas")({
   component: VendasPage,
 });
+
+function formatarComSinal(
+  valor: number,
+  formatar: (numero: number) => string
+) {
+  return valor > 0 ? `+${formatar(valor)}` : formatar(valor);
+}
+
+function textoVariacao(comparacao: ComparacaoValor) {
+  if (comparacao.situacao === "sem_alteracao") {
+    return "Sem alteração";
+  }
+
+  if (comparacao.situacao === "sem_base_anterior") {
+    return "Sem base anterior";
+  }
+
+  if (
+    comparacao.situacao === "base_negativa" ||
+    comparacao.situacao === "cruzamento_sinal"
+  ) {
+    return "Sem percentual comparável";
+  }
+
+  return formatarComSinal(comparacao.variacao ?? 0, pct);
+}
+
+function ComparativoCard({
+  label,
+  value,
+  previous,
+  difference,
+  variation,
+  available,
+  trend = "estavel",
+  icon,
+  tone = "default",
+}: {
+  label: string;
+  value: ReactNode;
+  previous?: ReactNode;
+  difference?: ReactNode;
+  variation?: ReactNode;
+  available: boolean;
+  trend?: TendenciaComparacao;
+  icon: LucideIcon;
+  tone?: "default" | "success" | "destructive" | "warning";
+}) {
+  const TrendIcon =
+    trend === "melhora"
+      ? ArrowUpRight
+      : trend === "piora"
+        ? ArrowDownRight
+        : Minus;
+  const trendClass =
+    trend === "melhora"
+      ? "text-success"
+      : trend === "piora"
+        ? "text-destructive"
+        : "text-muted-foreground";
+
+  return (
+    <KpiCard
+      label={label}
+      value={value}
+      icon={icon}
+      tone={tone}
+    >
+      {!available ? (
+        <div className="mt-3 text-xs text-muted-foreground">
+          Comparação indisponível
+        </div>
+      ) : (
+        <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+          <div>Anterior: {previous}</div>
+          <div className={`flex flex-wrap items-center gap-1 ${trendClass}`}>
+            <TrendIcon className="h-3.5 w-3.5" />
+            <span>Diferença: {difference}</span>
+            {variation && <span>· {variation}</span>}
+          </div>
+        </div>
+      )}
+    </KpiCard>
+  );
+}
+
+function textoIntervalo(
+  intervalo: IntervaloComercial,
+  vazio: string
+) {
+  if (intervalo.inicio && intervalo.fim) {
+    return `${dateBR(intervalo.inicio)} – ${dateBR(intervalo.fim)}`;
+  }
+  if (intervalo.inicio) {
+    return `A partir de ${dateBR(intervalo.inicio)}`;
+  }
+  if (intervalo.fim) {
+    return `Até ${dateBR(intervalo.fim)}`;
+  }
+  return vazio;
+}
 
 function VendasPage() {
   useRealtime([
@@ -72,6 +188,8 @@ function VendasPage() {
   const { empresaId } = useEmpresa();
 
   const [q, setQ] = useState("");
+  const [periodo, setPeriodo] =
+    useState<PeriodoComercial>("todo");
   const [from, setFrom] = useState("");
   const [to, setTo] = useState("");
   const [clienteFiltro, setClienteFiltro] =
@@ -99,50 +217,67 @@ function VendasPage() {
     [vendas]
   );
 
+  const periodos = useMemo(
+    () =>
+      resolverPeriodosComparacaoComercial(
+        periodo,
+        from,
+        to
+      ),
+    [periodo, from, to]
+  );
+
   const filtered = useMemo(
     () =>
       filtrarVendas(vendas, {
         busca: q,
         cliente: clienteFiltro,
-        dataInicial: from,
-        dataFinal: to,
+        dataInicial: periodos.atual.inicio,
+        dataFinal: periodos.atual.fim,
       }),
-    [vendas, q, clienteFiltro, from, to]
+    [vendas, q, clienteFiltro, periodos.atual]
+  );
+
+  const vendasAnteriores = useMemo(
+    () =>
+      periodos.anterior
+        ? filtrarVendas(vendas, {
+            busca: q,
+            cliente: clienteFiltro,
+            dataInicial: periodos.anterior.inicio,
+            dataFinal: periodos.anterior.fim,
+          })
+        : [],
+    [vendas, q, clienteFiltro, periodos.anterior]
   );
 
   const vendasVisiveis = filtered.slice(0, 200);
 
-  const k = useMemo(() => {
-    const fat = filtered.reduce(
-      (s, v) =>
-        s + Number(v.preco_venda ?? 0),
-      0
-    );
+  const k = useMemo(
+    () => calcularMetricasComerciais(filtered),
+    [filtered]
+  );
 
-    const lucro = filtered.reduce(
-      (s, v) =>
-        s + Number(v.lucro ?? 0),
-      0
-    );
+  const kAnterior = useMemo(
+    () => calcularMetricasComerciais(vendasAnteriores),
+    [vendasAnteriores]
+  );
 
-    const qtd = filtered.reduce(
-      (s, v) =>
-        s + Number(v.quantidade ?? 0),
-      0
-    );
+  const comparacao = useMemo(
+    () =>
+      periodos.anterior
+        ? compararMetricasComerciais(k, kAnterior)
+        : null,
+    [k, kAnterior, periodos.anterior]
+  );
 
-    const margem =
-      fat
-        ? lucro / fat
-        : 0;
-
-    return {
-      fat,
-      lucro,
-      qtd,
-      margem,
-    };
-  }, [filtered]);
+  const intervaloAtual = textoIntervalo(
+    periodos.atual,
+    periodo === "todo" ? "Todo o período" : "Sem limites definidos"
+  );
+  const intervaloAnterior = periodos.anterior
+    ? textoIntervalo(periodos.anterior, "")
+    : "Comparação indisponível";
 
   const ranking = useMemo(() => {
     return agruparVendasPorProduto(filtered).map(
@@ -240,7 +375,7 @@ function VendasPage() {
         className="mb-4"
         title="Filtros"
       >
-        <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 sm:grid-cols-2">
           <Input
             placeholder="Buscar produto, código ou cliente..."
             value={q}
@@ -278,35 +413,101 @@ function VendasPage() {
               ))}
             </SelectContent>
           </Select>
+        </div>
 
-          <Input
-            type="date"
-            value={from}
-            onChange={(e) =>
-              setFrom(e.target.value)
-            }
-          />
+        <div className="mt-3 flex flex-wrap gap-2">
+          {PERIODOS_COMERCIAIS.map((opcao) => (
+            <Button
+              key={opcao.value}
+              type="button"
+              size="sm"
+              variant={
+                periodo === opcao.value
+                  ? "default"
+                  : "outline"
+              }
+              aria-pressed={periodo === opcao.value}
+              onClick={() => setPeriodo(opcao.value)}
+            >
+              {opcao.label}
+            </Button>
+          ))}
+        </div>
 
-          <Input
-            type="date"
-            value={to}
-            onChange={(e) =>
-              setTo(e.target.value)
-            }
-          />
+        {periodo === "personalizado" && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="vendas-data-inicial">
+                Data inicial
+              </Label>
+              <Input
+                id="vendas-data-inicial"
+                type="date"
+                value={from}
+                onChange={(e) => setFrom(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+
+            <div>
+              <Label htmlFor="vendas-data-final">
+                Data final
+              </Label>
+              <Input
+                id="vendas-data-final"
+                type="date"
+                value={to}
+                onChange={(e) => setTo(e.target.value)}
+                className="mt-1"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 text-xs text-muted-foreground">
+          <div>Atual: {intervaloAtual}</div>
+          <div>Anterior: {intervaloAnterior}</div>
         </div>
       </Section>
 
-      <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <KpiCard
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+        <ComparativoCard
           label="Faturamento"
-          value={brl(k.fat)}
+          value={brl(k.faturamento)}
+          previous={
+            comparacao ? brl(comparacao.faturamento.anterior) : undefined
+          }
+          difference={
+            comparacao
+              ? formatarComSinal(comparacao.faturamento.diferenca, brl)
+              : undefined
+          }
+          variation={
+            comparacao
+              ? textoVariacao(comparacao.faturamento)
+              : undefined
+          }
+          available={!!comparacao}
+          trend={comparacao?.faturamento.tendencia}
           icon={DollarSign}
         />
 
-        <KpiCard
+        <ComparativoCard
           label="Lucro"
           value={brl(k.lucro)}
+          previous={
+            comparacao ? brl(comparacao.lucro.anterior) : undefined
+          }
+          difference={
+            comparacao
+              ? formatarComSinal(comparacao.lucro.diferenca, brl)
+              : undefined
+          }
+          variation={
+            comparacao ? textoVariacao(comparacao.lucro) : undefined
+          }
+          available={!!comparacao}
+          trend={comparacao?.lucro.tendencia}
           icon={TrendingUp}
           tone={
             k.lucro >= 0
@@ -315,9 +516,26 @@ function VendasPage() {
           }
         />
 
-        <KpiCard
+        <ComparativoCard
           label="Margem"
           value={pct(k.margem)}
+          previous={
+            comparacao ? pct(comparacao.margem.anterior) : undefined
+          }
+          difference={
+            comparacao
+              ? `${formatarComSinal(
+                  comparacao.margem.diferencaPontosPercentuais,
+                  (valor) =>
+                    valor.toLocaleString("pt-BR", {
+                      maximumFractionDigits: 1,
+                      minimumFractionDigits: 1,
+                    })
+                )} p.p.`
+              : undefined
+          }
+          available={!!comparacao}
+          trend={comparacao?.margem.tendencia}
           icon={TrendingUp}
           tone={
             k.margem >= 0
@@ -326,10 +544,51 @@ function VendasPage() {
           }
         />
 
-        <KpiCard
-          label="Qtd vendida"
-          value={num(k.qtd)}
+        <ComparativoCard
+          label="Quantidade"
+          value={num(k.quantidade)}
+          previous={
+            comparacao ? num(comparacao.quantidade.anterior) : undefined
+          }
+          difference={
+            comparacao
+              ? formatarComSinal(comparacao.quantidade.diferenca, num)
+              : undefined
+          }
+          variation={
+            comparacao
+              ? textoVariacao(comparacao.quantidade)
+              : undefined
+          }
+          available={!!comparacao}
+          trend={comparacao?.quantidade.tendencia}
           icon={ShoppingCart}
+        />
+
+        <ComparativoCard
+          label="Ticket médio por venda"
+          value={brl(k.ticketMedioPorVenda)}
+          previous={
+            comparacao
+              ? brl(comparacao.ticketMedioPorVenda.anterior)
+              : undefined
+          }
+          difference={
+            comparacao
+              ? formatarComSinal(
+                  comparacao.ticketMedioPorVenda.diferenca,
+                  brl
+                )
+              : undefined
+          }
+          variation={
+            comparacao
+              ? textoVariacao(comparacao.ticketMedioPorVenda)
+              : undefined
+          }
+          available={!!comparacao}
+          trend={comparacao?.ticketMedioPorVenda.tendencia}
+          icon={DollarSign}
         />
       </div>
 

@@ -82,6 +82,8 @@ export function filtrarVendas<
   );
 
   return vendas.filter((venda) => {
+    const data = venda.data?.slice(0, 10) ?? "";
+
     if (
       busca &&
       ![
@@ -105,14 +107,14 @@ export function filtrarVendas<
 
     if (
       filtros.dataInicial &&
-      (venda.data ?? "") < filtros.dataInicial
+      data < filtros.dataInicial
     ) {
       return false;
     }
 
     if (
       filtros.dataFinal &&
-      (venda.data ?? "") > filtros.dataFinal
+      data > filtros.dataFinal
     ) {
       return false;
     }

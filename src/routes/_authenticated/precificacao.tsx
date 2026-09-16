@@ -1,15 +1,36 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState, } from "@/components/dashboard/KpiCard";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow, } from "@/components/ui/table";
-import { brl, num, pct } from "@/lib/format";
+import { brl, dateBR, num, pct } from "@/lib/format";
 import { queryKeys } from "@/constants/queryKeys";
 import { listarVendas } from "@/service/vendas.service";
 import { useRealtime } from "@/hooks/useRealtime";
 import { useEmpresa } from "@/contexts/EmpresaContext";
 import { agruparVendasPorProduto } from "@/lib/agregacao-produtos-vendas";
+import {
+  buscarProdutosRentabilidade,
+  calcularRentabilidadeProdutos,
+  filtrarVendasPorPeriodo,
+  ORDENACOES_RENTABILIDADE,
+  ordenarProdutosRentabilidade,
+  PERIODOS_RENTABILIDADE,
+  resolverPeriodoRentabilidade,
+  type OrdenacaoRentabilidade,
+  type PeriodoRentabilidade,
+} from "@/lib/rentabilidade-produtos";
 
 export const Route = createFileRoute(
   "/_authenticated/precificacao"
@@ -21,6 +42,13 @@ function PrecificacaoPage() {
   useRealtime(["vendas"]);
 
   const { empresaId } = useEmpresa();
+  const [periodo, setPeriodo] =
+    useState<PeriodoRentabilidade>("todo");
+  const [dataInicial, setDataInicial] = useState("");
+  const [dataFinal, setDataFinal] = useState("");
+  const [busca, setBusca] = useState("");
+  const [ordenacao, setOrdenacao] =
+    useState<OrdenacaoRentabilidade>("faturamento");
 
   const { data: vendas = [] } = useQuery({
     queryKey: queryKeys.vendas.empresa(empresaId),
@@ -36,125 +64,65 @@ function PrecificacaoPage() {
     enabled: !!empresaId,
   });
 
-  const linhas = useMemo(() => {
-    return agruparVendasPorProduto(vendas)
-      .map((grupo) => {
-        const vendasProduto = grupo.vendas;
+  const intervalo = useMemo(
+    () =>
+      resolverPeriodoRentabilidade(
+        periodo,
+        dataInicial,
+        dataFinal
+      ),
+    [periodo, dataInicial, dataFinal]
+  );
 
-        const qtd = vendasProduto.reduce(
-          (s, v) =>
-            s + Number(v.quantidade ?? 0),
-          0
-        );
+  const vendasNoPeriodo = useMemo(
+    () => filtrarVendasPorPeriodo(vendas, intervalo),
+    [vendas, intervalo]
+  );
 
-        const faturamento = vendasProduto.reduce(
-          (s, v) =>
-            s + Number(v.preco_venda ?? 0),
-          0
-        );
+  const grupos = useMemo(
+    () => agruparVendasPorProduto(vendasNoPeriodo),
+    [vendasNoPeriodo]
+  );
 
-        const custo = vendasProduto.reduce(
-          (s, v) =>
-            s + Number(v.custo ?? 0),
-          0
-        );
+  const metricas = useMemo(
+    () => calcularRentabilidadeProdutos(grupos),
+    [grupos]
+  );
 
-        const despesas = vendasProduto.reduce(
-          (s, v) =>
-            s + Number(v.despesas ?? 0),
-          0
-        );
+  const encontradas = useMemo(
+    () => buscarProdutosRentabilidade(metricas, busca),
+    [metricas, busca]
+  );
 
-        const lucro = vendasProduto.reduce(
-          (s, v) =>
-            s + Number(v.lucro ?? 0),
-          0
-        );
+  const linhas = useMemo(
+    () => ordenarProdutosRentabilidade(encontradas, ordenacao),
+    [encontradas, ordenacao]
+  );
 
-        const precoMedio =
-          qtd > 0
-            ? faturamento / qtd
-            : 0;
+  const periodoAtivo = useMemo(() => {
+    const label =
+      PERIODOS_RENTABILIDADE.find(
+        (opcao) => opcao.value === periodo
+      )?.label ?? "Todo o período";
 
-        const vendasComCusto =
-          vendasProduto.filter(
-            (v) =>
-              Number(
-                v.custo ?? 0
-              ) > 0
-          );
+    if (periodo !== "personalizado") {
+      return label;
+    }
 
-        const custoTotalConhecido =
-          vendasComCusto.reduce(
-            (s, v) =>
-              s +
-              Number(
-                v.custo ?? 0
-              ),
-            0
-          );
+    if (intervalo.inicio && intervalo.fim) {
+      return `${dateBR(intervalo.inicio)} até ${dateBR(intervalo.fim)}`;
+    }
 
-        const qtdComCusto =
-          vendasComCusto.reduce(
-            (s, v) =>
-              s +
-              Number(
-                v.quantidade ?? 0
-              ),
-            0
-          );
+    if (intervalo.inicio) {
+      return `A partir de ${dateBR(intervalo.inicio)}`;
+    }
 
-        const lucroComCusto =
-          vendasComCusto.reduce(
-            (s, v) =>
-              s +
-              Number(
-                v.lucro ?? 0
-              ),
-            0
-          );
+    if (intervalo.fim) {
+      return `Até ${dateBR(intervalo.fim)}`;
+    }
 
-        const temCustoConhecido =
-          qtdComCusto > 0 &&
-          custoTotalConhecido > 0;
-
-        const custoUnit =
-          temCustoConhecido
-            ? custoTotalConhecido /
-            qtdComCusto
-            : null;
-
-        const roi =
-          temCustoConhecido
-            ? lucroComCusto /
-            custoTotalConhecido
-            : null;
-
-        const margem =
-          faturamento > 0
-            ? lucro / faturamento
-            : 0;
-
-        return {
-          chave: grupo.chave,
-          descricao: grupo.rotulo,
-          qtd,
-          faturamento,
-          custo,
-          despesas,
-          lucro,
-          precoMedio,
-          custoUnit,
-          roi,
-          margem,
-        };
-      })
-      .sort(
-        (a, b) =>
-          b.faturamento -
-          a.faturamento
-      );
-  }, [vendas]);
+    return label;
+  }, [periodo, intervalo]);
 
   return (
     <AppShell
@@ -162,12 +130,103 @@ function PrecificacaoPage() {
       subtitle="Custo, ROI e margem por produto"
     >
       <Section
+        title="Filtros"
+        className="mb-4"
+      >
+        <div className="flex flex-wrap gap-2">
+          {PERIODOS_RENTABILIDADE.map((opcao) => (
+            <Button
+              key={opcao.value}
+              type="button"
+              size="sm"
+              variant={
+                periodo === opcao.value
+                  ? "default"
+                  : "outline"
+              }
+              aria-pressed={periodo === opcao.value}
+              onClick={() => setPeriodo(opcao.value)}
+            >
+              {opcao.label}
+            </Button>
+          ))}
+        </div>
+
+        {periodo === "personalizado" && (
+          <div className="mt-3 grid gap-3 sm:grid-cols-2">
+            <div>
+              <Label htmlFor="rentabilidade-data-inicial">
+                Data inicial
+              </Label>
+              <Input
+                id="rentabilidade-data-inicial"
+                type="date"
+                value={dataInicial}
+                onChange={(event) =>
+                  setDataInicial(event.target.value)
+                }
+                className="mt-1"
+              />
+            </div>
+            <div>
+              <Label htmlFor="rentabilidade-data-final">
+                Data final
+              </Label>
+              <Input
+                id="rentabilidade-data-final"
+                type="date"
+                value={dataFinal}
+                onChange={(event) =>
+                  setDataFinal(event.target.value)
+                }
+                className="mt-1"
+              />
+            </div>
+          </div>
+        )}
+
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          <Input
+            placeholder="Buscar por produto ou código..."
+            value={busca}
+            onChange={(event) => setBusca(event.target.value)}
+          />
+
+          <Select
+            value={ordenacao}
+            onValueChange={(value) =>
+              setOrdenacao(value as OrdenacaoRentabilidade)
+            }
+          >
+            <SelectTrigger aria-label="Ordenar produtos por">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {ORDENACOES_RENTABILIDADE.map((opcao) => (
+                <SelectItem
+                  key={opcao.value}
+                  value={opcao.value}
+                >
+                  {opcao.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+
+        <div className="mt-3 text-xs text-muted-foreground">
+          Período ativo: {periodoAtivo} · {linhas.length}{" "}
+          {linhas.length === 1 ? "produto encontrado" : "produtos encontrados"}
+        </div>
+      </Section>
+
+      <Section
         title="Análise por produto"
         description={`${linhas.length} itens com vendas`}
       >
         {linhas.length ===
           0 ? (
-          <EmptyState title="Sem dados de vendas" />
+          <EmptyState title="Nenhum produto com vendas neste período ou busca" />
         ) : (
           <div className="overflow-x-auto">
             <Table>
@@ -178,7 +237,11 @@ function PrecificacaoPage() {
                   </TableHead>
 
                   <TableHead className="text-right">
-                    Qtd
+                    Quantidade
+                  </TableHead>
+
+                  <TableHead className="text-right">
+                    Faturamento
                   </TableHead>
 
                   <TableHead className="text-right">
@@ -186,7 +249,7 @@ function PrecificacaoPage() {
                   </TableHead>
 
                   <TableHead className="text-right">
-                    Custo unit.
+                    Custo unit. conhecido
                   </TableHead>
 
                   <TableHead className="text-right">
@@ -202,7 +265,7 @@ function PrecificacaoPage() {
                   </TableHead>
 
                   <TableHead className="text-right">
-                    ROI
+                    ROI com custo conhecido
                   </TableHead>
                 </TableRow>
               </TableHeader>
@@ -216,13 +279,19 @@ function PrecificacaoPage() {
                     >
                       <TableCell className="max-w-xs truncate">
                         {
-                          r.descricao
+                          r.rotulo
                         }
                       </TableCell>
 
                       <TableCell className="text-right">
                         {num(
-                          r.qtd
+                          r.quantidade
+                        )}
+                      </TableCell>
+
+                      <TableCell className="text-right">
+                        {brl(
+                          r.faturamento
                         )}
                       </TableCell>
 
@@ -233,12 +302,20 @@ function PrecificacaoPage() {
                       </TableCell>
 
                       <TableCell className="text-right">
-                        {r.custoUnit ===
+                        {r.custoUnitarioConhecido ===
                           null
                           ? "—"
                           : brl(
-                            r.custoUnit
+                            r.custoUnitarioConhecido
                           )}
+
+                        {r.vendasComCustoConhecido < r.vendas && (
+                          <div className="mt-1 text-xs font-normal text-muted-foreground">
+                            {r.vendasComCustoConhecido === 0
+                              ? "Sem custo conhecido"
+                              : `Custo conhecido em ${r.vendasComCustoConhecido} de ${r.vendas} vendas`}
+                          </div>
+                        )}
                       </TableCell>
 
                       <TableCell className="text-right">
@@ -278,20 +355,20 @@ function PrecificacaoPage() {
                       <TableCell
                         className={
                           "text-right " +
-                          (r.roi ===
+                          (r.roiComCustoConhecido ===
                             null
                             ? "text-muted-foreground"
-                            : r.roi <
+                            : r.roiComCustoConhecido <
                               0
                               ? "text-destructive"
                               : "text-success")
                         }
                       >
-                        {r.roi ===
+                        {r.roiComCustoConhecido ===
                           null
                           ? "—"
                           : pct(
-                            r.roi
+                            r.roiComCustoConhecido
                           )}
                       </TableCell>
                     </TableRow>

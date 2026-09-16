@@ -25,32 +25,33 @@ type TabelaProdutosProps = {
   onExcluir: (produto: ProdutoFull) => void;
 };
 
+export function classificarEstoque(estoque: number, minimo: number) {
+  if (estoque <= 0) {
+    return {
+      label: "Zerado",
+      tone: "destructive" as const,
+    };
+  }
+
+  if (estoque <= minimo) {
+    return {
+      label: "Crítico",
+      tone: "warning" as const,
+    };
+  }
+
+  return {
+    label: "OK",
+    tone: "success" as const,
+  };
+}
+
 export function TabelaProdutos({
   produtos,
   giroMap,
   onDetalhes,
   onExcluir,
 }: TabelaProdutosProps) {
-  const statusOf = (estoque: number, minimo: number) => {
-    if (estoque <= 0) {
-      return {
-        label: "Zerado",
-        tone: "destructive" as const,
-      };
-    }
-
-    if (estoque <= minimo) {
-      return {
-        label: "Crítico",
-        tone: "warning" as const,
-      };
-    }
-
-    return {
-      label: "OK",
-      tone: "success" as const,
-    };
-  };
 
   return (
     <div className="overflow-x-auto">
@@ -82,7 +83,7 @@ export function TabelaProdutos({
             const giro =
               giroMap.get(produto.id) ?? 0;
 
-            const status = statusOf(
+            const status = classificarEstoque(
               estoque,
               minimo
             );

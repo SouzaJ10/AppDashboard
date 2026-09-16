@@ -13,9 +13,13 @@ import { queryKeys } from "@/constants/queryKeys";
 import { useGiroProdutos } from "@/hooks/useGiroProdutos";
 import { EstoqueResumo } from "@/components/estoque/EstoqueResumo";
 import { EstoqueFiltros } from "@/components/estoque/EstoqueFiltros";
-import { TabelaProdutos } from "@/components/estoque/TabelaProdutos";
+import { classificarEstoque, TabelaProdutos } from "@/components/estoque/TabelaProdutos";
 import { DetalhesProduto } from "@/components/estoque/DetalhesProduto";
 import { useEmpresa } from "@/contexts/EmpresaContext";
+import { Download } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { exportToXlsx } from "@/lib/export-xlsx";
+import { todayISO } from "@/lib/format";
 
 export const Route = createFileRoute("/_authenticated/estoque")({ component: EstoquePage });
 
@@ -125,6 +129,44 @@ export function EstoquePage() {
     });
   }, [produtos, q, categoria, status, ordemCodigo]);
 
+  const produtosVisiveis = filtered.slice(0, 300);
+
+  const onExport = () => {
+    if (produtosVisiveis.length === 0) {
+      toast.info("Não existem registros para exportar.");
+      return;
+    }
+
+    const incluirDescricao = produtosVisiveis.some(
+      (p) => p.descricao && p.descricao !== (p.nome ?? p.descricao)
+    );
+
+    exportToXlsx(`estoque_${todayISO()}`, {
+      Estoque: produtosVisiveis.map((p) => {
+        const estoque = Number(p.estoque_atual ?? 0);
+        const minimo = Number(p.estoque_minimo ?? 0);
+        const custo = Number(p.custo_compra ?? 0);
+
+        return {
+          Código: p.codigo,
+          Produto: p.nome ?? p.descricao,
+          ...(incluirDescricao ? { Descrição: p.descricao } : {}),
+          Categoria: p.categoria ?? "",
+          Marca: p.marca ?? "",
+          Unidade: p.unidade,
+          "Estoque atual": estoque,
+          "Estoque mínimo": minimo,
+          "Situação do estoque": classificarEstoque(estoque, minimo).label,
+          Giro: giroMap.get(p.id) ?? 0,
+          "Custo de compra unitário": custo,
+          "Preço de venda unitário": Number(p.preco_venda ?? 0),
+          "Valor em estoque": estoque * custo,
+          "Status do produto": p.ativo === false ? "Inativo" : "Ativo",
+        };
+      }),
+    });
+  };
+
   const k = useMemo(() => {
     const totalProdutos = produtos.length;
     const total = produtos.reduce((s, p) => s + Number(p.estoque_atual ?? 0), 0);
@@ -176,7 +218,15 @@ export function EstoquePage() {
     <AppShell
       title="Produtos & Estoque"
       subtitle="Cadastro, controle e alertas"
-      actions={<ProdutoDialog />}
+      actions={
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="outline" size="sm" onClick={onExport}>
+            <Download className="mr-1 h-4 w-4" />
+            Exportar
+          </Button>
+          <ProdutoDialog />
+        </div>
+      }
     >
       <EstoqueResumo
         totalProdutos={k.totalProdutos}
@@ -215,7 +265,7 @@ export function EstoquePage() {
         ) : (
           <div className="overflow-x-auto">
             <TabelaProdutos
-              produtos={filtered.slice(0, 300)}
+              produtos={produtosVisiveis}
               giroMap={giroMap}
               onDetalhes={setDetalhes}
               onExcluir={onDelete}

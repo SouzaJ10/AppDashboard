@@ -20,7 +20,22 @@ const dados = vi.hoisted(() => ({
   ] satisfies Despesa[],
 }));
 
-vi.mock("@tanstack/react-router", () => ({ createFileRoute: () => (options: unknown) => ({ options }) }));
+vi.mock("@tanstack/react-router", async () => {
+  const { useState } = await import("react");
+  return { createFileRoute: () => (options: unknown) => {
+    type Search = { aba: string; vencimento?: string };
+    let updateSearch: (search: Search) => void;
+    return {
+      options,
+      useSearch: () => {
+        const [search, setSearch] = useState<Search>({ aba: "historico" });
+        updateSearch = setSearch;
+        return search;
+      },
+      useNavigate: () => ({ search }: { search: Search }) => updateSearch(search),
+    };
+  } };
+});
 vi.mock("@tanstack/react-query", () => ({
   useQuery: ({ queryKey }: { queryKey: string[] }) => ({ data: queryKey[0] === "vendas" ? dados.vendas : dados.despesas, isLoading: false, isError: false }),
   useQueryClient: () => ({ invalidateQueries: vi.fn() }),

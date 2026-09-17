@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useMemo, useState } from "react";
 import { listarMovimentacoes } from "@/service/movimentacoes.service";
@@ -410,7 +410,12 @@ function FinanceiroPage() {
           )}
           icon={Wallet}
           tone="default"
-        />
+        >
+          <Link to="/compras" search={{ aba: "contas" }}
+            className="mt-3 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Ver contas a pagar
+          </Link>
+        </KpiCard>
 
         <KpiCard
           label="Valor vencido"
@@ -424,7 +429,12 @@ function FinanceiroPage() {
               ? "destructive"
               : "default"
           }
-        />
+        >
+          <Link to="/compras" search={{ aba: "contas", vencimento: "vencida" }}
+            className="mt-3 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+            Ver contas vencidas
+          </Link>
+        </KpiCard>
       </div>
 
       <Section

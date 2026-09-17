@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
+import { z } from "zod";
 import { useQueryClient } from "@tanstack/react-query";
 import { AppShell } from "@/components/layout/AppShell";
 import { Section, EmptyState } from "@/components/dashboard/KpiCard";
@@ -22,7 +23,15 @@ import {
     type StatusVencimento,
 } from "@/lib/vencimentos";
 
+const searchSchema = z.object({
+    aba: z.enum(["historico", "contas"]).catch("historico").default("historico"),
+    vencimento: z.enum([
+        "vencida", "hoje", "proximos_7_dias", "futura", "sem_vencimento",
+    ]).optional().catch(undefined),
+});
+
 export const Route = createFileRoute("/_authenticated/compras")({
+    validateSearch: searchSchema,
     component: ComprasPage,
 });
 
@@ -50,15 +59,9 @@ function ComprasPage() {
     const [dataInicial, setDataInicial] = useState("");
     const [dataFinal, setDataFinal] = useState("");
 
-    const [aba, setAba] =
-        useState<AbaCompras>("historico");
-
-    const [
-        vencimentoFiltro,
-        setVencimentoFiltro,
-    ] = useState<
-        "__all__" | StatusVencimento
-    >("__all__");
+    const { aba, vencimento } = Route.useSearch();
+    const navigate = Route.useNavigate();
+    const vencimentoFiltro = vencimento ?? "__all__";
 
     const hoje = todayISO();
 
@@ -547,7 +550,7 @@ function ComprasPage() {
                 <Tabs
                     value={aba}
                     onValueChange={(value) =>
-                        setAba(value as AbaCompras)
+                        navigate({ search: { aba: value as AbaCompras, vencimento } })
                     }
                     className="mb-5"
                 >
@@ -1055,7 +1058,12 @@ function ComprasPage() {
                 {aba === "contas" && (
                     <div className="space-y-4">
                         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-                            <div className="rounded-xl border bg-card p-4">
+                            <button
+                                type="button"
+                                onClick={() => navigate({ search: { aba: "contas" } })}
+                                aria-pressed={!vencimento}
+                                className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
                                 <p className="text-sm text-muted-foreground">
                                     Contas pendentes
                                 </p>
@@ -1063,9 +1071,14 @@ function ComprasPage() {
                                 <p className="mt-1 text-2xl font-semibold">
                                     {contasAPagar.length}
                                 </p>
-                            </div>
+                            </button>
 
-                            <div className="rounded-xl border bg-card p-4">
+                            <button
+                                type="button"
+                                onClick={() => navigate({ search: { aba: "contas" } })}
+                                aria-pressed={!vencimento}
+                                className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
                                 <p className="text-sm text-muted-foreground">
                                     Total a pagar
                                 </p>
@@ -1073,9 +1086,14 @@ function ComprasPage() {
                                 <p className="mt-1 text-2xl font-semibold">
                                     {brl(valorAPagar)}
                                 </p>
-                            </div>
+                            </button>
 
-                            <div className="rounded-xl border bg-card p-4">
+                            <button
+                                type="button"
+                                onClick={() => navigate({ search: { aba: "contas", vencimento: "vencida" } })}
+                                aria-pressed={vencimento === "vencida"}
+                                className="rounded-xl border bg-card p-4 text-left hover:bg-muted/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                            >
                                 <p className="text-sm text-muted-foreground">
                                     Vencidas
                                 </p>
@@ -1089,7 +1107,7 @@ function ComprasPage() {
                                         resumoVencimentos.valorVencido
                                     )}
                                 </p>
-                            </div>
+                            </button>
 
                             <div className="rounded-xl border bg-card p-4">
                                 <p className="text-sm text-muted-foreground">
@@ -1115,14 +1133,15 @@ function ComprasPage() {
                             <Select
                                 value={vencimentoFiltro}
                                 onValueChange={(value) =>
-                                    setVencimentoFiltro(
-                                        value as
-                                        | "__all__"
-                                        | StatusVencimento
-                                    )
+                                    navigate({ search: {
+                                        aba,
+                                        vencimento: value === "__all__"
+                                            ? undefined
+                                            : value as StatusVencimento,
+                                    } })
                                 }
                             >
-                                <SelectTrigger className="w-56">
+                                <SelectTrigger className="w-56" aria-label="Filtrar por vencimento">
                                     <SelectValue placeholder="Vencimento" />
                                 </SelectTrigger>
 

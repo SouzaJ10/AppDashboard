@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 
 import { brl, num, pct } from "@/lib/format";
+import { Link } from "@tanstack/react-router";
 
 type Props = {
   k: any;
@@ -25,11 +26,13 @@ function MiniStat({
   value,
   hint,
   icon: Icon,
+  action,
 }: {
   label: string;
   value: string;
   hint?: string;
   icon: React.ElementType;
+  action?: React.ReactNode;
 }) {
   return (
     <div className="flex items-start gap-3 rounded-xl border bg-card/60 p-4">
@@ -51,6 +54,7 @@ function MiniStat({
             {hint}
           </p>
         )}
+        {action}
       </div>
     </div>
   );
@@ -225,6 +229,12 @@ export function DashboardKPIs({
             value={brl(k.valorContasPagar)}
             hint={`${num(k.contasAPagar)} conta(s) pendente(s)`}
             icon={Clock3}
+            action={
+              <Link to="/compras" search={{ aba: "contas" }}
+                className="mt-2 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Ver contas a pagar
+              </Link>
+            }
           />
 
           <MiniStat
@@ -410,6 +420,10 @@ export function DashboardKPIs({
                   ? `${num(k.contasVencidas)} conta(s) vencida(s)`
                   : "Nenhuma conta vencida"}
               </p>
+              <Link to="/compras" search={{ aba: "contas", vencimento: "vencida" }}
+                className="mt-2 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Ver contas vencidas
+              </Link>
             </div>
 
             <span

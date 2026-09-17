@@ -179,7 +179,7 @@ describe("indicadores abrem os registros que explicam seus números", () => {
     expect(destino.searchParams.get("vencimento")).toBe(vencimento ?? null);
     expect(destino.searchParams.size).toBe(vencimento ? 2 : 1);
     expect(link.className).toContain("focus-visible:ring-2");
-    expect(screen.getAllByRole("link")).toHaveLength(2);
+    expect(screen.getAllByRole("link")).toHaveLength(origem === "/dashboard" ? 3 : 2);
     fireEvent.click(link);
     await waitFor(() => expect(router.state.location.pathname).toBe("/compras"));
     await screen.findByRole("combobox");

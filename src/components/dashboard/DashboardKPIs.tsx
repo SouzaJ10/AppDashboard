@@ -242,6 +242,12 @@ export function DashboardKPIs({
             value={brl(k.despesasPendentes)}
             hint="Ainda não impactaram o caixa"
             icon={AlertTriangle}
+            action={
+              <Link to="/despesas" search={{ aba: "contas" }}
+                className="mt-2 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring">
+                Ver despesas pendentes
+              </Link>
+            }
           />
 
           <MiniStat

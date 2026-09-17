@@ -410,7 +410,7 @@ function DespesasPage() {
       }
 
       const rows = filtered.map((d) => ({
-        Data: d.data,
+        "Data da despesa": d.data ? dateBR(d.data) : "",
         Descrição: d.descricao,
         Categoria:
           d.categoria ?? "",
@@ -419,10 +419,10 @@ function DespesasPage() {
           d.forma_pagamento ?? "",
         "Centro de custo":
           d.centro_custo ?? "",
-        Status: d.status,
+        Status: d.status === "pago" ? "Pago" : "Pendente",
         Observações:
           d.observacoes ?? "",
-        Vencimento: d.data_vencimento
+        "Data de vencimento": d.data_vencimento
           ? dateBR(d.data_vencimento)
           : "",
       }));
@@ -442,7 +442,7 @@ function DespesasPage() {
     }
 
     const rows = contasFiltradas.map((d) => ({
-      Data: d.data,
+      "Data da despesa": d.data ? dateBR(d.data) : "",
       Descrição: d.descricao,
       Categoria: d.categoria ?? "",
       Valor: Number(d.valor),
@@ -450,9 +450,9 @@ function DespesasPage() {
         d.forma_pagamento ?? "",
       "Centro de custo":
         d.centro_custo ?? "",
-      Status: d.status,
+      Status: d.status === "pago" ? "Pago" : "Pendente",
       Observações: d.observacoes ?? "",
-      Vencimento: d.data_vencimento
+      "Data de vencimento": d.data_vencimento
         ? dateBR(d.data_vencimento)
         : "",
       "Situação do vencimento":

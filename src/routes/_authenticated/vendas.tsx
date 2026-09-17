@@ -351,10 +351,10 @@ function VendasPage() {
       "Total da venda": Number(
         v.preco_venda ?? 0
       ),
-      Custo: Number(v.custo ?? 0),
+      "Custo total": Number(v.custo ?? 0),
       Despesas: Number(v.despesas ?? 0),
       Lucro: Number(v.lucro ?? 0),
-      Margem: Number(v.margem ?? 0),
+      "Margem (decimal)": Number(v.margem ?? 0),
       Cliente: v.cliente ?? "",
       Observações: v.observacoes ?? "",
     }));

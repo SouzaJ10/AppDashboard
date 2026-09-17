@@ -438,7 +438,7 @@ function ComprasPage() {
         }));
 
         exportToXlsx(
-            `contas_a_pagar_${dataArquivo}`,
+            `contas_a_pagar_compras_${dataArquivo}`,
             { "Contas a pagar": rows }
         );
     };

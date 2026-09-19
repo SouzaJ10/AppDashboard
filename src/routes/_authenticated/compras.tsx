@@ -28,6 +28,8 @@ const searchSchema = z.object({
     vencimento: z.enum([
         "vencida", "hoje", "proximos_7_dias", "futura", "sem_vencimento",
     ]).optional().catch(undefined),
+    dataInicial: z.string().date().optional().catch(undefined),
+    dataFinal: z.string().date().optional().catch(undefined),
 });
 
 export const Route = createFileRoute("/_authenticated/compras")({
@@ -56,12 +58,12 @@ function ComprasPage() {
     const [busca, setBusca] = useState("");
     const [fornecedorFiltro, setFornecedorFiltro] =
         useState("__all");
-    const [dataInicial, setDataInicial] = useState("");
-    const [dataFinal, setDataFinal] = useState("");
-
-    const { aba, vencimento } = Route.useSearch();
+    const search = Route.useSearch();
+    const { aba, vencimento } = search;
     const navigate = Route.useNavigate();
     const vencimentoFiltro = vencimento ?? "__all__";
+    const dataInicial = search.dataInicial ?? "";
+    const dataFinal = search.dataFinal ?? "";
 
     const hoje = todayISO();
 
@@ -550,7 +552,7 @@ function ComprasPage() {
                 <Tabs
                     value={aba}
                     onValueChange={(value) =>
-                        navigate({ search: { aba: value as AbaCompras, vencimento } })
+                        navigate({ search: { aba: value as AbaCompras, vencimento, dataInicial: dataInicial || undefined, dataFinal: dataFinal || undefined } })
                     }
                     className="mb-5"
                 >
@@ -638,9 +640,10 @@ function ComprasPage() {
                                             className="w-40"
                                             value={dataInicial}
                                             onChange={(e) =>
-                                                setDataInicial(
-                                                    e.target.value
-                                                )
+                                                navigate({ search: (anterior) => ({
+                                                    ...anterior,
+                                                    dataInicial: e.target.value || undefined,
+                                                }) })
                                             }
                                         />
                                     </div>
@@ -659,9 +662,10 @@ function ComprasPage() {
                                             className="w-40"
                                             value={dataFinal}
                                             onChange={(e) =>
-                                                setDataFinal(
-                                                    e.target.value
-                                                )
+                                                navigate({ search: (anterior) => ({
+                                                    ...anterior,
+                                                    dataFinal: e.target.value || undefined,
+                                                }) })
                                             }
                                         />
                                     </div>

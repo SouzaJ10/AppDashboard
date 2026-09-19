@@ -19,3 +19,14 @@ export const todayISO = () =>
     month: "2-digit",
     day: "2-digit",
   }).format(new Date());
+
+export const periodoMesCalendario = (referencia: string) => {
+  const [ano, mes] = referencia.slice(0, 10).split("-").map(Number);
+  const ultimoDia = new Date(ano, mes, 0).getDate();
+  const prefixo = `${String(ano).padStart(4, "0")}-${String(mes).padStart(2, "0")}`;
+
+  return {
+    dataInicial: `${prefixo}-01`,
+    dataFinal: `${prefixo}-${String(ultimoDia).padStart(2, "0")}`,
+  };
+};

@@ -13,7 +13,7 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { brl, num, pct } from "@/lib/format";
+import { brl, num, pct, periodoMesCalendario, todayISO } from "@/lib/format";
 import { Link } from "@tanstack/react-router";
 
 type Props = {
@@ -66,6 +66,7 @@ export function DashboardKPIs({
 }: Props) {
   const lucroPositivo = k.lucroLiquido >= 0;
   const saldoPositivo = k.saldoCaixa >= 0;
+  const periodoComprasMes = periodoMesCalendario(todayISO());
 
   return (
     <div className="space-y-8">
@@ -255,6 +256,15 @@ export function DashboardKPIs({
             value={num(k.comprasMes)}
             hint={brl(k.valorComprasMes)}
             icon={ShoppingCart}
+            action={
+              <Link
+                to="/compras"
+                search={{ aba: "historico", ...periodoComprasMes }}
+                className="mt-2 inline-flex rounded-sm text-xs font-medium text-primary underline-offset-4 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+              >
+                Ver compras do mês
+              </Link>
+            }
           />
 
           <MiniStat
